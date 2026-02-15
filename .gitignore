@@ -6,6 +6,10 @@
 *.swp
 .buildlog/
 .history
+.idea/
+.metadata
+.DS_Store
+*.iml
 
 
 
