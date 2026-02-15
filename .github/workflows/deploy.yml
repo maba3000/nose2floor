@@ -27,7 +27,7 @@ jobs:
       - run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href /nose2floor/app/
+        run: flutter build web --release --base-href /app/
 
       - name: Prepare deploy directory
         run: |
