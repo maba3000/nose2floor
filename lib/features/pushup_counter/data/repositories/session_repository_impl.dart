@@ -35,6 +35,12 @@ class SessionRepositoryImpl implements SessionRepository {
   }
 
   @override
+  Future<void> replaceHistory(List<WorkoutSession> sessions) async {
+    final models = sessions.map(WorkoutSessionModel.fromEntity).toList();
+    await datasource.saveHistory(models);
+  }
+
+  @override
   Future<AppSettings> getSettings() async {
     return datasource.getSettings();
   }

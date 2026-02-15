@@ -6,6 +6,7 @@ abstract class SessionRepository {
   Future<void> saveSession(WorkoutSession session);
   Future<void> deleteSession(String id);
   Future<void> clearHistory();
+  Future<void> replaceHistory(List<WorkoutSession> sessions);
   Future<AppSettings> getSettings();
   Future<void> saveSettings(AppSettings settings);
 }

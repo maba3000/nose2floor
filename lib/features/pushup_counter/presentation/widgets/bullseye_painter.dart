@@ -8,8 +8,8 @@ class BullsEyePainter extends CustomPainter {
   static const double defaultMaxRadius = 190;
 
   /// Zone fractions matching the scoring logic in PushupCubit.
-  /// Drawn from outermost to innermost so each layer covers the previous.
-  static const _zones = [1.0, 0.7, 0.5, 0.3, 0.1];
+  /// Equal-width rings, drawn from outermost to innermost.
+  static const _zones = [1.0, 0.8, 0.6, 0.4, 0.2];
 
   static const _ringColors = [
     Color(0xFFFFFFFF), // outer - white   (score 2)

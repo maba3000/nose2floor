@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nose2floor/features/pushup_counter/presentation/cubit/pushup_cubit.dart';
 import 'package:nose2floor/features/pushup_counter/presentation/cubit/pushup_state.dart';
@@ -28,10 +29,7 @@ class SettingsScreen extends StatelessWidget {
               const _SectionHeader('GAMEPLAY'),
               const SizedBox(height: 12),
 
-              _SettingRow(
-                title: 'Debounce time',
-                subtitle: '${s.debounceMs}ms',
-              ),
+              _SettingRow(title: 'Hit cooldown', subtitle: '${s.debounceMs}ms'),
               Slider(
                 value: s.debounceMs.toDouble(),
                 min: 100,
@@ -49,7 +47,7 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               _ToggleRow(
-                title: 'Show reps',
+                title: 'Show hits',
                 value: s.showReps,
                 onChanged: (v) {
                   cubit.updateSettings(s.copyWith(showReps: v));
@@ -81,9 +79,7 @@ class SettingsScreen extends StatelessWidget {
                   max: 2,
                   divisions: 15,
                   onChanged: (v) {
-                    cubit.updateSettings(
-                      s.copyWith(bullseyeScale: v),
-                    );
+                    cubit.updateSettings(s.copyWith(bullseyeScale: v));
                   },
                 ),
               ],
@@ -131,6 +127,39 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
 
+              const SizedBox(height: 32),
+
+              // --- Data ---
+              const _SectionHeader('DATA'),
+              const SizedBox(height: 12),
+
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.copy, size: 18),
+                  label: const Text('Export all data to clipboard'),
+                  onPressed: () {
+                    final json = cubit.exportAllDataAsJson();
+                    Clipboard.setData(ClipboardData(text: json));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Data copied to clipboard'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.paste, size: 18),
+                  label: const Text('Import data from JSON'),
+                  onPressed: () => _showImportDialog(context, cubit),
+                ),
+              ),
+
               const SizedBox(height: 40),
             ],
           );
@@ -138,6 +167,46 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+void _showImportDialog(BuildContext context, PushupCubit cubit) {
+  final controller = TextEditingController();
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Import data'),
+      content: TextField(
+        controller: controller,
+        maxLines: 8,
+        decoration: const InputDecoration(
+          hintText: 'Paste JSON here...',
+          border: OutlineInputBorder(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final text = controller.text.trim();
+            if (text.isEmpty) return;
+            final error = await cubit.importAllDataFromJson(text);
+            if (!ctx.mounted) return;
+            Navigator.of(ctx).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(error ?? 'Data imported successfully'),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+          child: const Text('Import'),
+        ),
+      ],
+    ),
+  );
 }
 
 class _SectionHeader extends StatelessWidget {

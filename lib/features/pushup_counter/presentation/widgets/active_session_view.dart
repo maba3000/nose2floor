@@ -21,8 +21,6 @@ class ActiveSessionView extends StatelessWidget {
       builder: (context, state) {
         final cubit = context.read<PushupCubit>();
         final settings = state.settings;
-        final goalReached =
-            settings.goalReps != null && state.reps >= settings.goalReps!;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -52,8 +50,7 @@ class ActiveSessionView extends StatelessWidget {
                       behavior: HitTestBehavior.opaque,
                       child: settings.showBullseye
                           ? CustomPaint(
-                              painter:
-                                  BullsEyePainter(maxRadius: maxRadius),
+                              painter: BullsEyePainter(maxRadius: maxRadius),
                               size: Size.infinite,
                             )
                           : const SizedBox.expand(),
@@ -82,14 +79,8 @@ class ActiveSessionView extends StatelessWidget {
                         child: Padding(
                           padding: const EdgeInsets.all(16),
                           child: CornerBadge(
-                            label: goalReached ? 'GOAL!' : 'REPS',
+                            label: 'HITS',
                             value: '${state.reps}',
-                            labelColor: goalReached
-                                ? Colors.green.shade700
-                                : null,
-                            valueColor: goalReached
-                                ? Colors.green.shade700
-                                : null,
                           ),
                         ),
                       ),

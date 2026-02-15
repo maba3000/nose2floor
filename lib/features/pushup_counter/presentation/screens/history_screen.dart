@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nose2floor/features/pushup_counter/presentation/cubit/pushup_cubit.dart';
 import 'package:nose2floor/features/pushup_counter/presentation/cubit/pushup_state.dart';
+import 'package:nose2floor/features/pushup_counter/presentation/screens/session_detail_screen.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -50,6 +51,10 @@ class HistoryScreen extends StatelessWidget {
           // Stats
           final totalSessions = history.length;
           final totalReps = history.fold<int>(0, (sum, s) => sum + s.reps);
+          final totalPoints = history.fold<int>(
+            0,
+            (sum, s) => sum + s.totalScore,
+          );
           final totalSeconds = history.fold<int>(
             0,
             (sum, s) => sum + s.durationSeconds,
@@ -59,6 +64,9 @@ class HistoryScreen extends StatelessWidget {
               : 0;
           final bestReps = history
               .map((s) => s.reps)
+              .reduce((a, b) => a > b ? a : b);
+          final bestPoints = history
+              .map((s) => s.totalScore)
               .reduce((a, b) => a > b ? a : b);
           final totalMins = totalSeconds ~/ 60;
 
@@ -89,15 +97,23 @@ class HistoryScreen extends StatelessWidget {
                     Row(
                       children: [
                         _StatTile(label: 'Sessions', value: '$totalSessions'),
-                        _StatTile(label: 'Total reps', value: '$totalReps'),
-                        _StatTile(label: 'Best', value: '$bestReps'),
+                        _StatTile(label: 'Total hits', value: '$totalReps'),
+                        _StatTile(label: 'Total pts', value: '$totalPoints'),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        _StatTile(label: 'Avg / session', value: '$avgReps'),
+                        _StatTile(label: 'Best hits', value: '$bestReps'),
+                        _StatTile(label: 'Best pts', value: '$bestPoints'),
+                        _StatTile(label: 'Avg hits', value: '$avgReps'),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
                         _StatTile(label: 'Total time', value: '${totalMins}m'),
+                        const Expanded(child: SizedBox.shrink()),
                         const Expanded(child: SizedBox.shrink()),
                       ],
                     ),
@@ -136,13 +152,27 @@ class HistoryScreen extends StatelessWidget {
                     child: ListTile(
                       contentPadding: EdgeInsets.zero,
                       title: Text(
-                        '${session.reps} reps',
+                        '${session.reps} hits  •  ${session.totalScore} pts',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       subtitle: Text('$dateStr  •  ${mins}m ${secs}s'),
+                      trailing: session.hits.isNotEmpty
+                          ? Icon(
+                              Icons.chevron_right,
+                              color: Colors.black.withValues(alpha: 0.3),
+                            )
+                          : null,
+                      onTap: session.hits.isNotEmpty
+                          ? () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    SessionDetailScreen(session: session),
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                 );

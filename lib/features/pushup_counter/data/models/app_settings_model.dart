@@ -5,7 +5,6 @@ import 'package:nose2floor/features/pushup_counter/domain/entities/app_settings.
 class AppSettingsModel extends AppSettings {
   const AppSettingsModel({
     super.debounceMs,
-    super.goalReps,
     super.soundEnabled,
     super.showReps,
     super.showPoints,
@@ -18,7 +17,6 @@ class AppSettingsModel extends AppSettings {
   factory AppSettingsModel.fromEntity(AppSettings settings) {
     return AppSettingsModel(
       debounceMs: settings.debounceMs,
-      goalReps: settings.goalReps,
       soundEnabled: settings.soundEnabled,
       showReps: settings.showReps,
       showPoints: settings.showPoints,
@@ -32,7 +30,6 @@ class AppSettingsModel extends AppSettings {
   factory AppSettingsModel.fromJson(Map<String, dynamic> json) {
     return AppSettingsModel(
       debounceMs: json['debounceMs'] as int? ?? 400,
-      goalReps: json['goalReps'] as int?,
       soundEnabled: json['soundEnabled'] as bool? ?? false,
       showReps: json['showReps'] as bool? ?? true,
       showPoints: json['showPoints'] as bool? ?? true,
@@ -53,7 +50,6 @@ class AppSettingsModel extends AppSettings {
   Map<String, dynamic> toJson() {
     return {
       'debounceMs': debounceMs,
-      'goalReps': goalReps,
       'soundEnabled': soundEnabled,
       'showReps': showReps,
       'showPoints': showPoints,

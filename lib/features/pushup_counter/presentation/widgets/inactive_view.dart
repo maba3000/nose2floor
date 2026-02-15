@@ -46,8 +46,7 @@ class InactiveView extends StatelessWidget {
                       behavior: HitTestBehavior.opaque,
                       child: settings.showBullseye
                           ? CustomPaint(
-                              painter:
-                                  BullsEyePainter(maxRadius: maxRadius),
+                              painter: BullsEyePainter(maxRadius: maxRadius),
                               size: Size.infinite,
                             )
                           : const SizedBox.expand(),
