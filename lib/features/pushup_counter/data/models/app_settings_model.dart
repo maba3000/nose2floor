@@ -12,6 +12,7 @@ class AppSettingsModel extends AppSettings {
     super.showBullseye,
     super.showHitMarker,
     super.hideHitAfterSeconds,
+    super.bullseyeScale,
   });
 
   factory AppSettingsModel.fromEntity(AppSettings settings) {
@@ -24,6 +25,7 @@ class AppSettingsModel extends AppSettings {
       showBullseye: settings.showBullseye,
       showHitMarker: settings.showHitMarker,
       hideHitAfterSeconds: settings.hideHitAfterSeconds,
+      bullseyeScale: settings.bullseyeScale,
     );
   }
 
@@ -37,6 +39,7 @@ class AppSettingsModel extends AppSettings {
       showBullseye: json['showBullseye'] as bool? ?? true,
       showHitMarker: json['showHitMarker'] as bool? ?? true,
       hideHitAfterSeconds: json['hideHitAfterSeconds'] as int? ?? 3,
+      bullseyeScale: (json['bullseyeScale'] as num?)?.toDouble() ?? 1.0,
     );
   }
 
@@ -57,6 +60,7 @@ class AppSettingsModel extends AppSettings {
       'showBullseye': showBullseye,
       'showHitMarker': showHitMarker,
       'hideHitAfterSeconds': hideHitAfterSeconds,
+      'bullseyeScale': bullseyeScale,
     };
   }
 

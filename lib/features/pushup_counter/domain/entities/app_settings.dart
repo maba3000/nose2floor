@@ -8,6 +8,7 @@ class AppSettings {
     this.showBullseye = true,
     this.showHitMarker = true,
     this.hideHitAfterSeconds = 3,
+    this.bullseyeScale = 1.0,
   });
 
   final int debounceMs;
@@ -18,6 +19,7 @@ class AppSettings {
   final bool showBullseye;
   final bool showHitMarker;
   final int hideHitAfterSeconds;
+  final double bullseyeScale;
 
   AppSettings copyWith({
     int? debounceMs,
@@ -28,6 +30,7 @@ class AppSettings {
     bool? showBullseye,
     bool? showHitMarker,
     int? hideHitAfterSeconds,
+    double? bullseyeScale,
   }) {
     return AppSettings(
       debounceMs: debounceMs ?? this.debounceMs,
@@ -38,6 +41,7 @@ class AppSettings {
       showBullseye: showBullseye ?? this.showBullseye,
       showHitMarker: showHitMarker ?? this.showHitMarker,
       hideHitAfterSeconds: hideHitAfterSeconds ?? this.hideHitAfterSeconds,
+      bullseyeScale: bullseyeScale ?? this.bullseyeScale,
     );
   }
 }

@@ -22,7 +22,8 @@ class InactiveView extends StatelessWidget {
           builder: (context, constraints) {
             final centerX = constraints.maxWidth / 2;
             final centerY = constraints.maxHeight / 2;
-            final maxRadius = BullsEyePainter.maxRadius;
+            final maxRadius =
+                BullsEyePainter.defaultMaxRadius * settings.bullseyeScale;
 
             return Container(
               color: const Color(0xFFF5F0EB),
@@ -44,8 +45,9 @@ class InactiveView extends StatelessWidget {
                       },
                       behavior: HitTestBehavior.opaque,
                       child: settings.showBullseye
-                          ? const CustomPaint(
-                              painter: BullsEyePainter(),
+                          ? CustomPaint(
+                              painter:
+                                  BullsEyePainter(maxRadius: maxRadius),
                               size: Size.infinite,
                             )
                           : const SizedBox.expand(),

@@ -69,6 +69,24 @@ class SettingsScreen extends StatelessWidget {
                   cubit.updateSettings(s.copyWith(showBullseye: v));
                 },
               ),
+              if (s.showBullseye) ...[
+                const SizedBox(height: 8),
+                _SettingRow(
+                  title: "Bull's eye size",
+                  subtitle: '${(s.bullseyeScale * 100).round()}%',
+                ),
+                Slider(
+                  value: s.bullseyeScale,
+                  min: 0.5,
+                  max: 2,
+                  divisions: 15,
+                  onChanged: (v) {
+                    cubit.updateSettings(
+                      s.copyWith(bullseyeScale: v),
+                    );
+                  },
+                ),
+              ],
               _ToggleRow(
                 title: 'Show timer',
                 value: s.soundEnabled,

@@ -1,41 +1,43 @@
 import 'package:flutter/material.dart';
 
 class BullsEyePainter extends CustomPainter {
-  const BullsEyePainter();
+  const BullsEyePainter({this.maxRadius = defaultMaxRadius});
 
-  /// ~1cm per ring at standard density. 1cm ≈ 38 logical px.
-  static const double ringWidth = 38;
-  static const int ringCount = 5;
+  final double maxRadius;
 
-  /// Total radius of the outermost ring.
-  static double get maxRadius => ringWidth * ringCount;
+  static const double defaultMaxRadius = 190;
+
+  /// Zone fractions matching the scoring logic in PushupCubit.
+  /// Drawn from outermost to innermost so each layer covers the previous.
+  static const _zones = [1.0, 0.7, 0.5, 0.3, 0.1];
 
   static const _ringColors = [
-    Color(0xFFFFFFFF), // outer - white
-    Color(0xFFFFB74D), // amber
-    Color(0xFFFF7043), // orange
-    Color(0xFFE53935), // red
-    Color(0xFFD32F2F), // bullseye - red
+    Color(0xFFFFFFFF), // outer - white   (score 2)
+    Color(0xFFFFB74D), // amber           (score 4)
+    Color(0xFFFF7043), // orange          (score 6)
+    Color(0xFFE53935), // red             (score 8)
+    Color(0xFFD32F2F), // bullseye - red  (score 10)
   ];
 
   @override
   void paint(Canvas canvas, Size size) {
     final centerX = size.width / 2;
     final centerY = size.height / 2;
+    final center = Offset(centerX, centerY);
 
-    // Draw rings from outside in, fixed size (clips if screen is small)
-    for (var i = 0; i < ringCount; i++) {
-      final radius = maxRadius - (i * ringWidth);
+    // Draw rings from outside in so inner rings paint over outer ones.
+    for (var i = 0; i < _zones.length; i++) {
+      final radius = maxRadius * _zones[i];
       final paint = Paint()
         ..color = _ringColors[i]
         ..style = PaintingStyle.fill;
-      canvas.drawCircle(Offset(centerX, centerY), radius, paint);
+      canvas.drawCircle(center, radius, paint);
 
       final borderPaint = Paint()
         ..color = Colors.black.withValues(alpha: 0.12)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
-      canvas.drawCircle(Offset(centerX, centerY), radius, borderPaint);
+      canvas.drawCircle(center, radius, borderPaint);
     }
 
     // Crosshair lines (subtle)
@@ -55,5 +57,5 @@ class BullsEyePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(BullsEyePainter old) => false;
+  bool shouldRepaint(BullsEyePainter old) => old.maxRadius != maxRadius;
 }
