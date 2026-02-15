@@ -3,19 +3,19 @@ import 'package:flutter/material.dart';
 class BullsEyePainter extends CustomPainter {
   const BullsEyePainter();
 
-  /// ~2cm per ring at standard density. 1cm ≈ 38 logical px.
-  static const double ringWidth = 76;
+  /// ~1cm per ring at standard density. 1cm ≈ 38 logical px.
+  static const double ringWidth = 38;
   static const int ringCount = 5;
 
   /// Total radius of the outermost ring.
   static double get maxRadius => ringWidth * ringCount;
 
   static const _ringColors = [
-    Color(0xFFD32F2F), // bullseye - red
-    Color(0xFFE53935),
-    Color(0xFFFF7043), // orange
-    Color(0xFFFFB74D),
     Color(0xFFFFFFFF), // outer - white
+    Color(0xFFFFB74D), // amber
+    Color(0xFFFF7043), // orange
+    Color(0xFFE53935), // red
+    Color(0xFFD32F2F), // bullseye - red
   ];
 
   @override

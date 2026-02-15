@@ -24,132 +24,134 @@ class InactiveView extends StatelessWidget {
             final centerY = constraints.maxHeight / 2;
             final maxRadius = BullsEyePainter.maxRadius;
 
-            return GestureDetector(
-              onTapUp: (details) {
-                cubit.incrementRepWithScore(
-                  details.localPosition.dx,
-                  details.localPosition.dy,
-                  centerX,
-                  centerY,
-                  maxRadius,
-                );
-              },
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                color: const Color(0xFFF5F0EB),
-                width: double.infinity,
-                height: double.infinity,
-                child: Stack(
-                  children: [
-                    if (settings.showBullseye)
-                      const CustomPaint(
-                        painter: BullsEyePainter(),
-                        size: Size.infinite,
-                      ),
+            return Container(
+              color: const Color(0xFFF5F0EB),
+              width: double.infinity,
+              height: double.infinity,
+              child: Stack(
+                children: [
+                  // Scoring layer: fires on any contact instantly
+                  Positioned.fill(
+                    child: Listener(
+                      onPointerDown: (event) {
+                        cubit.incrementRepWithScore(
+                          event.localPosition.dx,
+                          event.localPosition.dy,
+                          centerX,
+                          centerY,
+                          maxRadius,
+                        );
+                      },
+                      behavior: HitTestBehavior.opaque,
+                      child: settings.showBullseye
+                          ? const CustomPaint(
+                              painter: BullsEyePainter(),
+                              size: Size.infinite,
+                            )
+                          : const SizedBox.expand(),
+                    ),
+                  ),
 
-                    if (settings.showHitMarker &&
-                        state.lastTapX != null &&
-                        state.lastTapY != null)
-                      HitMarkerLayer(
+                  if (settings.showHitMarker &&
+                      state.lastTapX != null &&
+                      state.lastTapY != null)
+                    IgnorePointer(
+                      child: HitMarkerLayer(
                         tapX: state.lastTapX!,
                         tapY: state.lastTapY!,
                         score: state.lastTapScore,
                         hideAfterSeconds: settings.hideHitAfterSeconds,
                         showScore: settings.showPoints,
                       ),
+                    ),
 
-                    // Top-left: reps
-                    if (settings.showReps)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        child: SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: CornerBadge(
-                              label: 'DEMO',
-                              value: '${state.reps}',
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    // Top-right: points
-                    if (settings.showPoints)
-                      Positioned(
-                        top: 0,
-                        right: 0,
-                        child: SafeArea(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: CornerBadge(
-                              label: 'PTS',
-                              value: '${state.totalScore}',
-                              alignment: CrossAxisAlignment.end,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    // Bottom-left: settings & history
+                  // Top-left: reps
+                  if (settings.showReps)
                     Positioned(
-                      bottom: 0,
+                      top: 0,
                       left: 0,
                       child: SafeArea(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
-                            children: [
-                              _ActionButton(
-                                icon: Icons.tune,
-                                label: 'Settings',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => BlocProvider.value(
-                                      value: cubit,
-                                      child: const SettingsScreen(),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              _ActionButton(
-                                icon: Icons.history,
-                                label: 'History',
-                                onTap: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => BlocProvider.value(
-                                      value: cubit,
-                                      child: const HistoryScreen(),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          child: CornerBadge(
+                            label: 'DEMO',
+                            value: '${state.reps}',
                           ),
                         ),
                       ),
                     ),
 
-                    // Bottom-right: hold to start
+                  // Top-right: points
+                  if (settings.showPoints)
                     Positioned(
-                      bottom: 0,
+                      top: 0,
                       right: 0,
                       child: SafeArea(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: _ActionButton(
-                            icon: Icons.play_arrow_rounded,
-                            label: 'Hold to start',
-                            color: Colors.green,
-                            textColor: Colors.white,
-                            onLongPress: cubit.startSession,
+                          child: CornerBadge(
+                            label: 'PTS',
+                            value: '${state.totalScore}',
+                            alignment: CrossAxisAlignment.end,
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+
+                  // Bottom row: settings & history (left), hold to start (right)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _ActionButton(
+                                  icon: Icons.tune,
+                                  label: 'Settings',
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => BlocProvider.value(
+                                        value: cubit,
+                                        child: const SettingsScreen(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                _ActionButton(
+                                  icon: Icons.history,
+                                  label: 'History',
+                                  onTap: () => Navigator.of(context).push(
+                                    MaterialPageRoute<void>(
+                                      builder: (_) => BlocProvider.value(
+                                        value: cubit,
+                                        child: const HistoryScreen(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            _ActionButton(
+                              icon: Icons.play_arrow_rounded,
+                              label: 'Hold to start',
+                              color: Colors.green,
+                              textColor: Colors.white,
+                              onLongPress: cubit.startSession,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             );
           },
@@ -182,7 +184,6 @@ class _ActionButton extends StatelessWidget {
     final fg = textColor ?? Colors.black54;
 
     return GestureDetector(
-      onTapDown: (_) {},
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
