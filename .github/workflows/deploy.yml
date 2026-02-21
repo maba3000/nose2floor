@@ -29,7 +29,7 @@ jobs:
 
       - name: Export web
         env:
-          EXPO_BASE_URL: /nose2floor
+          EXPO_BASE_URL: /
         run: |
           EXPO_WEB_USE_HERMES=false npx expo export --platform web
           cp dist/index.html dist/404.html
