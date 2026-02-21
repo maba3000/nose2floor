@@ -3,18 +3,42 @@
 ## Setup
 
 ```bash
-flutter pub get   # Fetch dependencies
-flutter run       # Run on any device
+npm install
+npx expo start   # pick w / a / i for web / Android / iOS
 ```
+
+## Code style
+
+Formatting is enforced by **Prettier** and linting by **ESLint + TypeScript**.
+
+| Tool       | Config file     |
+| ---------- | --------------- |
+| Prettier   | `.prettierrc`   |
+| ESLint     | `.eslintrc.js`  |
+| TypeScript | `tsconfig.json` |
+
+Key style rules (enforced automatically):
+
+- Single quotes, trailing commas, 100-character line width
+- `react-hooks/rules-of-hooks` is an error; `exhaustive-deps` is a warning
+- No unused variables or implicit `any`
 
 ## Before committing
 
 ```bash
-dart format .                        # Auto-fix formatting
-dart format --set-exit-if-changed .  # Check formatting
-flutter analyze                      # Static analysis
-flutter test                         # Run tests
+npm run format        # auto-fix formatting with Prettier
+npm run lint          # ESLint — fix any reported issues
+npx tsc --noEmit      # type-check without emitting files
+npm test              # run Jest tests
 ```
+
+Or run all checks at once:
+
+```bash
+npm run format:check && npm run lint && npx tsc --noEmit && npm test
+```
+
+CI runs the same steps and will fail the PR if any check fails.
 
 ## Commits
 

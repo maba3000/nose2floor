@@ -20,26 +20,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - uses: actions/setup-node@v4
         with:
-          channel: stable
+          node-version: 22
+          cache: npm
 
-      - run: flutter pub get
+      - run: npm ci
 
-      - name: Build web
-        run: flutter build web --release --base-href /app/
-
-      - name: Prepare deploy directory
+      - name: Export web
+        env:
+          EXPO_BASE_URL: /nose2floor
         run: |
-          mkdir -p deploy/app
-          cp -r build/web/* deploy/app/
-          cp web/landing.html deploy/index.html
-          cp web/favicon.png deploy/favicon.png
-          cp web/icon.png deploy/icon.png
+          EXPO_WEB_USE_HERMES=false npx expo export --platform web
+          cp dist/index.html dist/404.html
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: deploy
+          path: dist
 
   deploy:
     needs: build

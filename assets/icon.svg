@@ -2,16 +2,13 @@
   <!-- Background -->
   <rect width="512" height="512" rx="80" fill="#F5F0EB"/>
   <!-- Ring 5 - outer white -->
-  <circle cx="256" cy="256" r="220" fill="#FFFFFF" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <circle cx="256" cy="256" r="220" fill="#FFFFFF"/>
   <!-- Ring 4 - amber -->
-  <circle cx="256" cy="256" r="176" fill="#FFB74D" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <circle cx="256" cy="256" r="176" fill="#FFB74D"/>
   <!-- Ring 3 - orange -->
-  <circle cx="256" cy="256" r="132" fill="#FF7043" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <circle cx="256" cy="256" r="132" fill="#FF7043"/>
   <!-- Ring 2 - red -->
-  <circle cx="256" cy="256" r="88" fill="#E53935" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
+  <circle cx="256" cy="256" r="88" fill="#E53935"/>
   <!-- Ring 1 - bullseye -->
-  <circle cx="256" cy="256" r="44" fill="#D32F2F" stroke="rgba(0,0,0,0.08)" stroke-width="1"/>
-  <!-- Crosshair -->
-  <line x1="36" y1="256" x2="476" y2="256" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
-  <line x1="256" y1="36" x2="256" y2="476" stroke="rgba(0,0,0,0.06)" stroke-width="1"/>
+  <circle cx="256" cy="256" r="44" fill="#D32F2F"/>
 </svg>
