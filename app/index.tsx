@@ -189,7 +189,7 @@ export default function HomeScreen() {
               ) : (
                 <View pointerEvents="none" />
               )}
-              <HoldButton label="Hold to stop" color="#E53935" onHold={handleStopSession} />
+              <HoldButton label="Hold to Stop" color="#E53935" onHold={handleStopSession} />
             </View>
           </>
         ) : (
