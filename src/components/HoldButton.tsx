@@ -95,13 +95,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '400',
     zIndex: 1,
-    userSelect: 'none',
   },
 });
-
-// Suppresses iOS Safari long-press text selection, callout menu, and context menu.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const iosSuppressStyle: any = { userSelect: 'none', WebkitTouchCallout: 'none' };
 
 function WebHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
   const [pressed, setPressed] = useState(false);
@@ -170,7 +165,7 @@ function WebHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
       }}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...({ onContextMenu: (e: any) => e.preventDefault() } as any)}
-      style={[styles.button, baseStyle, iosSuppressStyle]}
+      style={[styles.button, baseStyle]}
     >
       <View pointerEvents="none" style={[styles.progress, progressStyle]} />
       <Text style={styles.label}>{label}</Text>

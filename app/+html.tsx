@@ -23,6 +23,9 @@ export default function Root({ children }: PropsWithChildren) {
 
         <meta name="theme-color" content="#F5F0EB" />
 
+        {/* Prevent iOS long-press text selection and callout across the whole app */}
+        <style>{`* { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }`}</style>
+
         <ScrollViewStyleReset />
       </head>
       <body>{children}</body>
