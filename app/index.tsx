@@ -87,8 +87,35 @@ export default function HomeScreen() {
       const tap = { x: tapX, y: tapY, score, at: now };
 
       recordHit(hit, tap, isActive);
+
+      if (settings.sessionMode === 'auto' && isActive) {
+        if (!sessionIdRef.current) {
+          sessionIdRef.current = uuid();
+          sessionStartTime.current = Date.now();
+        }
+        upsertSession({
+          id: sessionIdRef.current,
+          startedAt: sessionStartTime.current || now,
+          durationSeconds: elapsedSeconds,
+          reps: reps + 1,
+          totalScore: totalScore + hit.score,
+          hits: [...hits, hit],
+          bullseyeScale: settings.bullseyeScale,
+        });
+      }
     },
-    [checkDebounce, isActive, recordHit],
+    [
+      checkDebounce,
+      isActive,
+      recordHit,
+      settings.sessionMode,
+      settings.bullseyeScale,
+      elapsedSeconds,
+      reps,
+      totalScore,
+      hits,
+      upsertSession,
+    ],
   );
 
   const handleStartSession = useCallback(() => {
