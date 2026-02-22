@@ -82,6 +82,13 @@ export default function MoreScreen() {
           </View>
           <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
+
+        <View style={styles.navRow}>
+          <View style={styles.navText}>
+            <Text selectable={false} style={styles.navLabel}>Version</Text>
+            <Text selectable={false} style={styles.navHint}>1.0.0</Text>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
