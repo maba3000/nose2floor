@@ -29,7 +29,13 @@ export default function SettingsScreen() {
             return (
               <Pressable
                 key={value}
-                onPress={() => updateSettings({ sessionMode: value })}
+                onPress={() =>
+                  updateSettings(
+                    value === 'auto'
+                      ? { sessionMode: value, showIntro: false }
+                      : { sessionMode: value },
+                  )
+                }
                 style={[styles.modePill, active && styles.modePillActive]}
               >
                 <Text selectable={false} style={[styles.modeText, active && styles.modeTextActive]}>
@@ -42,6 +48,14 @@ export default function SettingsScreen() {
         <Text selectable={false} style={styles.modeHint}>
           Auto starts a session when the app opens and saves continuously.
         </Text>
+        <View style={styles.row}>
+          <Text selectable={false}>Show intro on startup</Text>
+          <Switch
+            value={settings.sessionMode === 'auto' ? false : settings.showIntro}
+            disabled={settings.sessionMode === 'auto'}
+            onValueChange={(v) => updateSettings({ showIntro: v })}
+          />
+        </View>
 
         <Text selectable={false} style={styles.section}>
           Gameplay

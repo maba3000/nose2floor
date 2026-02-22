@@ -1,7 +1,7 @@
 import 'react-native-get-random-values';
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, StyleSheet, LayoutChangeEvent, Pressable } from 'react-native';
+import { View, Text, StyleSheet, LayoutChangeEvent, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { v4 as uuid } from 'uuid';
@@ -37,6 +37,7 @@ export default function HomeScreen() {
   const addSession = useHistoryStore((s) => s.addSession);
   const upsertSession = useHistoryStore((s) => s.upsertSession);
   const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
 
   const sessionStartTime = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
@@ -46,6 +47,7 @@ export default function HomeScreen() {
     width: 0,
     height: 0,
   });
+  const [introVisible, setIntroVisible] = useState(false);
 
   useTimer();
 
@@ -181,6 +183,10 @@ export default function HomeScreen() {
   }, [lastTap, settings.showHitMarkers, settings.hitMarkerAutoHideMs]);
 
   useEffect(() => {
+    setIntroVisible(settings.showIntro);
+  }, [settings.showIntro]);
+
+  useEffect(() => {
     if (settings.sessionMode === 'auto') {
       autoStartBlockedRef.current = false;
     }
@@ -188,13 +194,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (settings.sessionMode !== 'auto') return;
+    if (introVisible) return;
     if (autoStartBlockedRef.current) return;
     if (!isActive) {
       sessionStartTime.current = Date.now();
       sessionIdRef.current = uuid();
       startSession();
     }
-  }, [settings.sessionMode, isActive, startSession]);
+  }, [settings.sessionMode, introVisible, isActive, startSession]);
 
   useEffect(() => {
     if (settings.sessionMode !== 'auto') return;
@@ -225,6 +232,42 @@ export default function HomeScreen() {
       style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
       onLayout={onLayout}
     >
+      {introVisible && (
+        <View style={styles.introOverlay} pointerEvents="box-none">
+          <View style={styles.introBanner}>
+            <Text selectable={false} style={styles.introTitle}>
+              Welcome
+            </Text>
+            <Text selectable={false} style={styles.introBody}>
+              Place your phone on the floor near your face and do push-ups. Try to tap the bull&apos;s-eye with your nose to count a rep.
+            </Text>
+            <Text selectable={false} style={styles.introBody}>
+              “Hold to Start” to begin.
+            </Text>
+            <Text selectable={false} style={styles.introBody}>
+              “Hold for More” to personalise the experience.
+            </Text>
+            <View style={styles.introActions}>
+              <Pressable style={styles.introDismiss} onPress={() => setIntroVisible(false)}>
+                <Text selectable={false} style={styles.introDismissText}>
+                  Got it
+                </Text>
+              </Pressable>
+              <Pressable
+                style={styles.introDismiss}
+                onPress={() => {
+                  updateSettings({ showIntro: false });
+                  setIntroVisible(false);
+                }}
+              >
+                <Text selectable={false} style={styles.introDismissText}>
+                  Don&apos;t show again
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      )}
       <Pressable
         onPress={(e) => {
           const nativeEvent = e.nativeEvent as unknown as {
@@ -332,4 +375,35 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
+  introOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 5,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  introBanner: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.08)',
+    gap: 8,
+  },
+  introTitle: { fontSize: 18, fontWeight: '600', color: '#1A202C' },
+  introBody: { fontSize: 14, color: 'rgba(0,0,0,0.7)', lineHeight: 20 },
+  introActions: { flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' },
+  introDismiss: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.12)',
+    backgroundColor: '#F5F0EB',
+    marginTop: 4,
+  },
+  introDismissText: { fontSize: 12, fontWeight: '500', color: '#1A202C' },
 });

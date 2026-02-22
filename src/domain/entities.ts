@@ -19,6 +19,7 @@ export interface WorkoutSession {
 export interface AppSettings {
   hitCooldownMs: number;
   sessionMode: 'manual' | 'auto';
+  showIntro: boolean;
   showHitCount: boolean;
   showPoints: boolean;
   showBullseye: boolean;
@@ -31,6 +32,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   hitCooldownMs: 400,
   sessionMode: 'manual',
+  showIntro: true,
   showHitCount: true,
   showPoints: true,
   showBullseye: true,
