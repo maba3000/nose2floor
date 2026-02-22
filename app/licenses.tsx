@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import licensesAsset from '../assets/licenses.txt';
 
 export default function LicensesScreen() {
   const [licenseText, setLicenseText] = useState<string | null>(null);
@@ -18,7 +19,7 @@ export default function LicensesScreen() {
           const res = await fetch('/licenses.txt', { cache: 'no-store' });
           text = await res.text();
         } else {
-          const asset = Asset.fromModule(require('../assets/licenses.txt'));
+          const asset = Asset.fromModule(licensesAsset);
           await asset.downloadAsync();
           const uri = asset.localUri ?? asset.uri;
           text = await FileSystem.readAsStringAsync(uri);
