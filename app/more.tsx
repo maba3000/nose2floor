@@ -33,6 +33,14 @@ export default function MoreScreen() {
           </View>
           <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
+
+        <Pressable style={styles.navRow} onPress={() => router.push('/privacy')}>
+          <View style={styles.navText}>
+            <Text selectable={false} style={styles.navLabel}>Privacy</Text>
+            <Text selectable={false} style={styles.navHint}>How your data is handled</Text>
+          </View>
+          <Text selectable={false} style={styles.navArrow}>›</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );

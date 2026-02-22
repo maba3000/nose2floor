@@ -4,6 +4,7 @@ import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useHistoryStore } from '@/store/historyStore';
 import type { AppSettings } from '@/domain/entities';
+import { DEFAULT_SETTINGS } from '@/domain/entities';
 import { exportData, importData } from '@/persistence/storage';
 import { ScreenHeader } from '@/components/ScreenHeader';
 
@@ -19,6 +20,7 @@ export default function SettingsScreen() {
   function handleExport() {
     const json = exportData(settings, history);
     setExportJson(json);
+    setImportStatus(null);
   }
 
   function handleImport() {
@@ -29,8 +31,10 @@ export default function SettingsScreen() {
     }
     try {
       const data = importData(raw);
-      updateSettings(data.settings);
+      updateSettings({ ...DEFAULT_SETTINGS, ...data.settings });
       replaceHistory(data.history);
+      setImportJson('');
+      setExportJson(exportData({ ...DEFAULT_SETTINGS, ...data.settings }, data.history));
       setImportStatus('Import successful.');
     } catch (e) {
       setImportStatus('Import failed: invalid JSON.');
@@ -108,6 +112,9 @@ export default function SettingsScreen() {
         )}
 
         <Text selectable={false} style={styles.section}>Data</Text>
+        <Text selectable={false} style={styles.dataNote}>
+          Export or import your data anytime. Imports replace your current settings and history.
+        </Text>
         <Text selectable={false} style={styles.subLabel}>Export</Text>
         <Pressable style={styles.button} onPress={handleExport}>
           <Text selectable={false} style={styles.buttonLabel}>Generate export JSON</Text>
@@ -141,6 +148,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0EB' },
   content: { padding: 24, paddingTop: 8 },
   section: { fontSize: 16, fontWeight: '500', marginTop: 24, marginBottom: 8, color: '#2D3748' },
+  dataNote: { fontSize: 12, color: 'rgba(0,0,0,0.55)', marginBottom: 8 },
   subLabel: {
     fontSize: 13,
     fontWeight: '500',
