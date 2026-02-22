@@ -8,20 +8,23 @@ export default function PrivacyScreen() {
       <ScreenHeader title="Privacy" />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
-          <Text selectable={false} style={styles.title}>Data stays on your device</Text>
+          <Text selectable={false} style={styles.title}>
+            Data stays on your device
+          </Text>
           <Text selectable={false} style={styles.body}>
-            Your progress, settings, and scores are stored locally on your device or in your browser.
-            We do not receive this data.
+            Your progress, settings, and scores are stored locally on your device or in your
+            browser. We do not receive this data.
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text selectable={false} style={styles.title}>No tracking or ads</Text>
+          <Text selectable={false} style={styles.title}>
+            No tracking or ads
+          </Text>
           <Text selectable={false} style={styles.body}>
             The app does not include analytics, advertising, or tracking technologies.
           </Text>
         </View>
-
       </ScrollView>
     </View>
   );

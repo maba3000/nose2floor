@@ -14,7 +14,9 @@ export default function HistoryScreen() {
       <View style={styles.container}>
         <ScreenHeader title="History" />
         <View style={styles.empty}>
-          <Text selectable={false} style={styles.emptyText}>No sessions yet.</Text>
+          <Text selectable={false} style={styles.emptyText}>
+            No sessions yet.
+          </Text>
         </View>
       </View>
     );
@@ -35,7 +37,9 @@ export default function HistoryScreen() {
             style={styles.sessionRow}
           >
             <View style={styles.sessionMeta}>
-              <Text selectable={false} style={styles.sessionDate}>{new Date(item.startedAt).toLocaleString()}</Text>
+              <Text selectable={false} style={styles.sessionDate}>
+                {new Date(item.startedAt).toLocaleString()}
+              </Text>
               <Text selectable={false}>
                 Hits: {item.reps} · Points: {item.totalScore}
               </Text>
@@ -49,7 +53,9 @@ export default function HistoryScreen() {
               }}
               style={styles.deleteButton}
             >
-              <Text selectable={false} style={styles.deleteLabel}>Delete</Text>
+              <Text selectable={false} style={styles.deleteLabel}>
+                Delete
+              </Text>
             </Pressable>
           </TouchableOpacity>
         )}

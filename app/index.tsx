@@ -35,9 +35,12 @@ export default function HomeScreen() {
   const lastTap = useSessionStore((s) => s.lastTap);
 
   const addSession = useHistoryStore((s) => s.addSession);
+  const upsertSession = useHistoryStore((s) => s.upsertSession);
   const settings = useSettingsStore((s) => s.settings);
 
   const sessionStartTime = useRef<number>(0);
+  const sessionIdRef = useRef<string | null>(null);
+  const autoStartBlockedRef = useRef(false);
   const layoutRef = useRef<{ cx: number; cy: number; maxRadius: number } | null>(null);
   const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({
     width: 0,
@@ -90,21 +93,46 @@ export default function HomeScreen() {
 
   const handleStartSession = useCallback(() => {
     sessionStartTime.current = Date.now();
+    sessionIdRef.current = uuid();
     startSession();
   }, [startSession]);
 
   const handleStopSession = useCallback(() => {
-    addSession({
-      id: uuid(),
-      startedAt: sessionStartTime.current,
+    if (reps === 0) {
+      sessionIdRef.current = null;
+      reset();
+      return;
+    }
+    const id = sessionIdRef.current ?? uuid();
+    const startedAt = sessionStartTime.current || Date.now();
+    const session = {
+      id,
+      startedAt,
       durationSeconds: elapsedSeconds,
       reps,
       totalScore,
       hits,
       bullseyeScale: settings.bullseyeScale,
-    });
+    };
+    if (settings.sessionMode === 'auto') {
+      upsertSession(session);
+      autoStartBlockedRef.current = true;
+    } else {
+      addSession(session);
+    }
+    sessionIdRef.current = null;
     reset();
-  }, [addSession, elapsedSeconds, reps, totalScore, hits, settings.bullseyeScale, reset]);
+  }, [
+    addSession,
+    upsertSession,
+    elapsedSeconds,
+    reps,
+    totalScore,
+    hits,
+    settings.bullseyeScale,
+    settings.sessionMode,
+    reset,
+  ]);
 
   const formatTime = (s: number) =>
     `${Math.floor(s / 60)
@@ -122,6 +150,46 @@ export default function HomeScreen() {
     const id = setTimeout(() => setMarkerVisible(false), settings.hitMarkerAutoHideMs);
     return () => clearTimeout(id);
   }, [lastTap, settings.showHitMarkers, settings.hitMarkerAutoHideMs]);
+
+  useEffect(() => {
+    if (settings.sessionMode === 'auto') {
+      autoStartBlockedRef.current = false;
+    }
+  }, [settings.sessionMode]);
+
+  useEffect(() => {
+    if (settings.sessionMode !== 'auto') return;
+    if (autoStartBlockedRef.current) return;
+    if (!isActive) {
+      sessionStartTime.current = Date.now();
+      sessionIdRef.current = uuid();
+      startSession();
+    }
+  }, [settings.sessionMode, isActive, startSession]);
+
+  useEffect(() => {
+    if (settings.sessionMode !== 'auto') return;
+    if (!isActive || !sessionIdRef.current) return;
+    if (reps === 0) return;
+    upsertSession({
+      id: sessionIdRef.current,
+      startedAt: sessionStartTime.current || Date.now(),
+      durationSeconds: elapsedSeconds,
+      reps,
+      totalScore,
+      hits,
+      bullseyeScale: settings.bullseyeScale,
+    });
+  }, [
+    settings.sessionMode,
+    isActive,
+    elapsedSeconds,
+    reps,
+    totalScore,
+    hits,
+    settings.bullseyeScale,
+    upsertSession,
+  ]);
 
   return (
     <View

@@ -35,66 +35,110 @@ export default function MoreScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable style={styles.navRow} onPress={() => router.push('/insights')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Insights</Text>
-            <Text selectable={false} style={styles.navHint}>Progress and trends</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Insights
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              Progress and trends
+            </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/history')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>History</Text>
-            <Text selectable={false} style={styles.navHint}>Sessions and exports</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              History
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              Sessions and exports
+            </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/settings')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Settings</Text>
-            <Text selectable={false} style={styles.navHint}>Preferences and display</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Settings
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              Preferences and display
+            </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/data')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Data</Text>
-            <Text selectable={false} style={styles.navHint}>Export and import</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Data
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              Export and import
+            </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/privacy')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Privacy</Text>
-            <Text selectable={false} style={styles.navHint}>How your data is handled</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Privacy
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              How your data is handled
+            </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/licenses')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Licenses</Text>
-            <Text selectable={false} style={styles.navHint}>Open-source attributions</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Licenses
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              Open-source attributions
+            </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={handleCopySource}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Source code</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Source code
+            </Text>
             <Text selectable={false} style={styles.navHint}>
               {copied ? 'Copied to clipboard' : SOURCE_URL}
             </Text>
           </View>
-          <Text selectable={false} style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>
+            ›
+          </Text>
         </Pressable>
 
         <View style={styles.navRow}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Version</Text>
-            <Text selectable={false} style={styles.navHint}>1.0.0</Text>
+            <Text selectable={false} style={styles.navLabel}>
+              Version
+            </Text>
+            <Text selectable={false} style={styles.navHint}>
+              1.0.0
+            </Text>
           </View>
         </View>
       </ScrollView>

@@ -36,7 +36,11 @@ export function HitMarkerOverlay({ x, y, score, showScore }: Props) {
           },
         ]}
       />
-      {showScore && <Text selectable={false} style={[styles.score, { left: x + 24, top: y - 34 }]}>+{score}</Text>}
+      {showScore && (
+        <Text selectable={false} style={[styles.score, { left: x + 24, top: y - 34 }]}>
+          +{score}
+        </Text>
+      )}
     </View>
   );
 }

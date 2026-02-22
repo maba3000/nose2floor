@@ -19,7 +19,9 @@ export default function SessionDetailScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Session" />
-      <Text selectable={false} style={styles.subHeader}>{dateStr}</Text>
+      <Text selectable={false} style={styles.subHeader}>
+        {dateStr}
+      </Text>
 
       <View style={styles.statsRow}>
         <Stat label="HITS" value={`${session.reps}`} />
@@ -39,8 +41,12 @@ export default function SessionDetailScreen() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.stat}>
-      <Text selectable={false} style={styles.statValue}>{value}</Text>
-      <Text selectable={false} style={styles.statLabel}>{label}</Text>
+      <Text selectable={false} style={styles.statValue}>
+        {value}
+      </Text>
+      <Text selectable={false} style={styles.statLabel}>
+        {label}
+      </Text>
     </View>
   );
 }

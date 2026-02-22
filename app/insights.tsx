@@ -16,8 +16,12 @@ export default function InsightsScreen() {
         <View style={styles.grid}>
           {stats.map((stat) => (
             <View key={stat.label} style={styles.card}>
-              <Text selectable={false} style={styles.cardLabel}>{stat.label}</Text>
-              <Text selectable={false} style={styles.cardValue}>{stat.value}</Text>
+              <Text selectable={false} style={styles.cardLabel}>
+                {stat.label}
+              </Text>
+              <Text selectable={false} style={styles.cardValue}>
+                {stat.value}
+              </Text>
             </View>
           ))}
         </View>

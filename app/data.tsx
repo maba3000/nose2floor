@@ -48,9 +48,13 @@ export default function DataScreen() {
           Export or import your data anytime. Imports replace your current settings and history.
         </Text>
 
-        <Text selectable={false} style={styles.subLabel}>Export</Text>
+        <Text selectable={false} style={styles.subLabel}>
+          Export
+        </Text>
         <Pressable style={styles.button} onPress={handleExport}>
-          <Text selectable={false} style={styles.buttonLabel}>Generate export JSON</Text>
+          <Text selectable={false} style={styles.buttonLabel}>
+            Generate export JSON
+          </Text>
         </Pressable>
         <TextInput
           value={exportJson}
@@ -60,7 +64,9 @@ export default function DataScreen() {
           style={styles.textArea}
         />
 
-        <Text selectable={false} style={styles.subLabel}>Import</Text>
+        <Text selectable={false} style={styles.subLabel}>
+          Import
+        </Text>
         <TextInput
           value={importJson}
           onChangeText={setImportJson}
@@ -69,9 +75,15 @@ export default function DataScreen() {
           style={styles.textArea}
         />
         <Pressable style={styles.button} onPress={handleImport}>
-          <Text selectable={false} style={styles.buttonLabel}>Import data</Text>
+          <Text selectable={false} style={styles.buttonLabel}>
+            Import data
+          </Text>
         </Pressable>
-        {importStatus && <Text selectable={false} style={styles.status}>{importStatus}</Text>}
+        {importStatus && (
+          <Text selectable={false} style={styles.status}>
+            {importStatus}
+          </Text>
+        )}
       </ScrollView>
     </View>
   );

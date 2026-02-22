@@ -47,7 +47,7 @@ export default function LicensesScreen() {
           <Text selectable={false} style={styles.licenseText}>
             {loadError
               ? 'Unable to load licenses. Please reinstall the app.'
-              : licenseText ?? 'Loading licenses...'}
+              : (licenseText ?? 'Loading licenses...')}
           </Text>
         </View>
       </ScrollView>

@@ -10,8 +10,12 @@ interface Props {
 export function CornerBadge({ label, value, align = 'flex-start' }: Props) {
   return (
     <View style={[styles.container, { alignItems: align }]}>
-      <Text selectable={false} style={styles.label}>{label}</Text>
-      <Text selectable={false} style={styles.value}>{value}</Text>
+      <Text selectable={false} style={styles.label}>
+        {label}
+      </Text>
+      <Text selectable={false} style={styles.value}>
+        {value}
+      </Text>
     </View>
   );
 }

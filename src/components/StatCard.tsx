@@ -9,8 +9,12 @@ interface Props {
 export function StatCard({ label, value }: Props) {
   return (
     <View style={styles.card}>
-      <Text selectable={false} style={styles.value}>{value}</Text>
-      <Text selectable={false} style={styles.label}>{label}</Text>
+      <Text selectable={false} style={styles.value}>
+        {value}
+      </Text>
+      <Text selectable={false} style={styles.label}>
+        {label}
+      </Text>
     </View>
   );
 }
