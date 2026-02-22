@@ -1,14 +1,46 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!-- Background -->
-  <rect width="512" height="512" rx="80" fill="#F5F0EB"/>
-  <!-- Ring 5 - outer white -->
-  <circle cx="256" cy="256" r="220" fill="#FFFFFF"/>
-  <!-- Ring 4 - amber -->
-  <circle cx="256" cy="256" r="176" fill="#FFB74D"/>
-  <!-- Ring 3 - orange -->
-  <circle cx="256" cy="256" r="132" fill="#FF7043"/>
-  <!-- Ring 2 - red -->
-  <circle cx="256" cy="256" r="88" fill="#E53935"/>
-  <!-- Ring 1 - bullseye -->
-  <circle cx="256" cy="256" r="44" fill="#D32F2F"/>
+  <rect width="512" height="512" rx="84" fill="#F7F2EA"/>
+
+  <!-- Target shadow -->
+  <ellipse cx="268" cy="342" rx="196" ry="68" fill="#0B0B0C" opacity="0.18"/>
+
+  <!-- Target rings (slight perspective, light palette) -->
+  <ellipse cx="260" cy="320" rx="190" ry="70" fill="#FFFFFF"/>
+  <ellipse cx="260" cy="320" rx="155" ry="58" fill="#FFB74D"/>
+  <ellipse cx="260" cy="320" rx="122" ry="46" fill="#FF7043"/>
+  <ellipse cx="260" cy="320" rx="92" ry="34" fill="#E53935"/>
+  <ellipse cx="260" cy="320" rx="62" ry="23" fill="#D32F2F"/>
+
+  <!-- Nose (teardrop, symmetric) -->
+  <g transform="translate(228 144) rotate(-12)">
+    <!-- Teardrop base -->
+    <path
+      d="M128 0
+         C78 0 36 28 18 70
+         C0 114 16 170 58 196
+         C96 220 160 220 198 196
+         C240 170 256 114 238 70
+         C220 28 178 0 128 0 Z"
+      fill="#E9B39A"
+      stroke="#C58D77"
+      stroke-width="6"
+      stroke-linejoin="round"
+    />
+    <!-- Bridge highlight -->
+    <path
+      d="M78 28 C112 8 150 10 178 26"
+      stroke="#F6D3C2"
+      stroke-width="12"
+      stroke-linecap="round"
+      opacity="0.85"
+      fill="none"
+    />
+    <!-- Tip highlight -->
+    <ellipse cx="128" cy="88" rx="26" ry="12" fill="#F2C6B2" opacity="0.9"/>
+    <!-- Nostrils -->
+    <ellipse cx="94" cy="138" rx="18" ry="13" fill="#6C4B3E"/>
+    <ellipse cx="160" cy="138" rx="18" ry="13" fill="#6C4B3E"/>
+  </g>
+
 </svg>
