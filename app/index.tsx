@@ -98,6 +98,9 @@ export default function HomeScreen() {
   }, [startSession]);
 
   const handleStopSession = useCallback(() => {
+    if (settings.sessionMode === 'auto') {
+      autoStartBlockedRef.current = true;
+    }
     if (reps === 0) {
       sessionIdRef.current = null;
       reset();
@@ -116,7 +119,6 @@ export default function HomeScreen() {
     };
     if (settings.sessionMode === 'auto') {
       upsertSession(session);
-      autoStartBlockedRef.current = true;
     } else {
       addSession(session);
     }
