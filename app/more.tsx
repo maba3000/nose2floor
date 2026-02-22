@@ -1,10 +1,33 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { ScreenHeader } from '@/components/ScreenHeader';
+
+const SOURCE_URL = 'https://github.com/maba3000/nose2floor';
 
 export default function MoreScreen() {
   const router = useRouter();
+  const [copied, setCopied] = useState(false);
+  const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copiedTimeout.current) clearTimeout(copiedTimeout.current);
+    },
+    [],
+  );
+
+  const handleCopySource = async () => {
+    try {
+      await Clipboard.setStringAsync(SOURCE_URL);
+      setCopied(true);
+      if (copiedTimeout.current) clearTimeout(copiedTimeout.current);
+      copiedTimeout.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -46,6 +69,16 @@ export default function MoreScreen() {
           <View style={styles.navText}>
             <Text selectable={false} style={styles.navLabel}>Licenses</Text>
             <Text selectable={false} style={styles.navHint}>Open-source attributions</Text>
+          </View>
+          <Text selectable={false} style={styles.navArrow}>›</Text>
+        </Pressable>
+
+        <Pressable style={styles.navRow} onPress={handleCopySource}>
+          <View style={styles.navText}>
+            <Text selectable={false} style={styles.navLabel}>Source code</Text>
+            <Text selectable={false} style={styles.navHint}>
+              {copied ? 'Copied to clipboard' : SOURCE_URL}
+            </Text>
           </View>
           <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>

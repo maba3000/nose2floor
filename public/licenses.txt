@@ -16478,6 +16478,16 @@ Type: BSD-2-Clause
 
 ------------------------------
 
+expo-clipboard (8.0.8)
+URL: https://github.com/expo/expo
+Author: 650 Industries, Inc.
+
+Description: Provides an interface for getting and setting Clipboard content on Android, iOS and Web.
+
+Type: MIT
+
+------------------------------
+
 expo-router (6.0.23)
 URL: https://github.com/expo/expo
 Author: 650 Industries, Inc.
