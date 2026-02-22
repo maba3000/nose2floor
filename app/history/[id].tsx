@@ -13,6 +13,19 @@ export default function SessionDetailScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
+  function Stat({ label, value }: { label: string; value: string }) {
+    return (
+      <View style={styles.stat}>
+        <Text selectable={false} style={styles.statValue}>
+          {value}
+        </Text>
+        <Text selectable={false} style={styles.statLabel}>
+          {label}
+        </Text>
+      </View>
+    );
+  }
+
   if (!session) {
     return (
       <View style={styles.container}>
@@ -49,19 +62,6 @@ export default function SessionDetailScreen() {
           <HitMapCanvas size={300} scale={session.bullseyeScale} hits={session.hits} />
         </View>
       </ScrollView>
-    </View>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <View style={styles.stat}>
-      <Text selectable={false} style={styles.statValue}>
-        {value}
-      </Text>
-      <Text selectable={false} style={styles.statLabel}>
-        {label}
-      </Text>
     </View>
   );
 }

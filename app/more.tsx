@@ -57,7 +57,7 @@ export default function MoreScreen() {
               History
             </Text>
             <Text selectable={false} style={styles.navHint}>
-              Sessions and exports
+              Session history
             </Text>
           </View>
           <Text selectable={false} style={styles.navArrow}>

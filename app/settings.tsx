@@ -37,8 +37,8 @@ export default function SettingsScreen() {
           />
         </View>
         <Text selectable={false} style={styles.modeHint}>
-          Auto mode starts when the app opens and saves as you go. Example: open the app, do
-          push-ups, close it — everything is saved.
+          Auto mode starts when the app opens and saves automatically. Manual mode uses “Hold to
+          Start” and “Hold to Stop.”
         </Text>
 
         <Text selectable={false} style={styles.section}>
