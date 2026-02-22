@@ -62,7 +62,7 @@ function NativeHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props)
     <GestureDetector gesture={gesture}>
       <Animated.View style={[styles.button, animatedStyle]}>
         <Animated.View pointerEvents="none" style={[styles.progress, progressStyle]} />
-        <Text style={styles.label}>{label}</Text>
+        <Text selectable={false} style={styles.label}>{label}</Text>
       </Animated.View>
     </GestureDetector>
   );
@@ -168,7 +168,7 @@ function WebHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
       style={[styles.button, baseStyle]}
     >
       <View pointerEvents="none" style={[styles.progress, progressStyle]} />
-      <Text style={styles.label}>{label}</Text>
+      <Text selectable={false} style={styles.label}>{label}</Text>
     </Pressable>
   );
 }

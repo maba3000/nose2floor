@@ -9,7 +9,7 @@ export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const session = useHistoryStore((s) => s.history.find((h) => h.id === id));
 
-  if (!session) return <Text>Session not found.</Text>;
+  if (!session) return <Text selectable={false}>Session not found.</Text>;
 
   const date = new Date(session.startedAt);
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -19,7 +19,7 @@ export default function SessionDetailScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Session" />
-      <Text style={styles.subHeader}>{dateStr}</Text>
+      <Text selectable={false} style={styles.subHeader}>{dateStr}</Text>
 
       <View style={styles.statsRow}>
         <Stat label="HITS" value={`${session.reps}`} />
@@ -39,8 +39,8 @@ export default function SessionDetailScreen() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.stat}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text selectable={false} style={styles.statValue}>{value}</Text>
+      <Text selectable={false} style={styles.statLabel}>{label}</Text>
     </View>
   );
 }

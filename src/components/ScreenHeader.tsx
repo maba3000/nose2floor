@@ -20,9 +20,9 @@ export function ScreenHeader({ title }: ScreenHeaderProps) {
         style={styles.backButton}
         hitSlop={10}
       >
-        <Text style={styles.backLabel}>←</Text>
+        <Text selectable={false} style={styles.backLabel}>←</Text>
       </Pressable>
-      <Text style={styles.title}>{title}</Text>
+      <Text selectable={false} style={styles.title}>{title}</Text>
     </View>
   );
 }

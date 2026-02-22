@@ -43,8 +43,8 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       <ScreenHeader title="Settings" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.section}>Gameplay</Text>
-        <Text>Hit cooldown: {settings.hitCooldownMs}ms</Text>
+        <Text selectable={false} style={styles.section}>Gameplay</Text>
+        <Text selectable={false}>Hit cooldown: {settings.hitCooldownMs}ms</Text>
         <Slider
           minimumValue={100}
           maximumValue={1000}
@@ -53,7 +53,7 @@ export default function SettingsScreen() {
           onValueChange={(v) => updateSettings({ hitCooldownMs: v })}
         />
 
-        <Text style={styles.section}>Display</Text>
+        <Text selectable={false} style={styles.section}>Display</Text>
         {(
           [
             ['showHitCount', 'Show hit count'],
@@ -63,7 +63,7 @@ export default function SettingsScreen() {
           ] as const
         ).map(([key, label]) => (
           <View key={key} style={styles.row}>
-            <Text>{label}</Text>
+            <Text selectable={false}>{label}</Text>
             <Switch
               value={settings[key]}
               onValueChange={(v) => updateSettings({ [key]: v } as Partial<AppSettings>)}
@@ -73,8 +73,8 @@ export default function SettingsScreen() {
 
         {settings.showBullseye && (
           <>
-            <Text style={styles.section}>Bull's-eye</Text>
-            <Text>Size: {settings.bullseyeScale.toFixed(1)}×</Text>
+            <Text selectable={false} style={styles.section}>Bull's-eye</Text>
+            <Text selectable={false}>Size: {settings.bullseyeScale.toFixed(1)}×</Text>
             <Slider
               minimumValue={0.5}
               maximumValue={2.0}
@@ -85,9 +85,9 @@ export default function SettingsScreen() {
           </>
         )}
 
-        <Text style={styles.section}>Hit Markers</Text>
+        <Text selectable={false} style={styles.section}>Hit Markers</Text>
         <View style={styles.row}>
-          <Text>Show hit markers</Text>
+          <Text selectable={false}>Show hit markers</Text>
           <Switch
             value={settings.showHitMarkers}
             onValueChange={(v) => updateSettings({ showHitMarkers: v })}
@@ -96,7 +96,7 @@ export default function SettingsScreen() {
 
         {settings.showHitMarkers && (
           <>
-            <Text>Hide after: {hideAfterSeconds === 0 ? 'Never' : `${hideAfterSeconds}s`}</Text>
+            <Text selectable={false}>Hide after: {hideAfterSeconds === 0 ? 'Never' : `${hideAfterSeconds}s`}</Text>
             <Slider
               minimumValue={0}
               maximumValue={10}
@@ -107,10 +107,10 @@ export default function SettingsScreen() {
           </>
         )}
 
-        <Text style={styles.section}>Data</Text>
-        <Text style={styles.subLabel}>Export</Text>
+        <Text selectable={false} style={styles.section}>Data</Text>
+        <Text selectable={false} style={styles.subLabel}>Export</Text>
         <Pressable style={styles.button} onPress={handleExport}>
-          <Text style={styles.buttonLabel}>Generate export JSON</Text>
+          <Text selectable={false} style={styles.buttonLabel}>Generate export JSON</Text>
         </Pressable>
         <TextInput
           value={exportJson}
@@ -120,7 +120,7 @@ export default function SettingsScreen() {
           style={styles.textArea}
         />
 
-        <Text style={styles.subLabel}>Import</Text>
+        <Text selectable={false} style={styles.subLabel}>Import</Text>
         <TextInput
           value={importJson}
           onChangeText={setImportJson}
@@ -129,9 +129,9 @@ export default function SettingsScreen() {
           style={styles.textArea}
         />
         <Pressable style={styles.button} onPress={handleImport}>
-          <Text style={styles.buttonLabel}>Import data</Text>
+          <Text selectable={false} style={styles.buttonLabel}>Import data</Text>
         </Pressable>
-        {importStatus && <Text style={styles.status}>{importStatus}</Text>}
+        {importStatus && <Text selectable={false} style={styles.status}>{importStatus}</Text>}
       </ScrollView>
     </View>
   );

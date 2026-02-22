@@ -12,26 +12,26 @@ export default function MoreScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Pressable style={styles.navRow} onPress={() => router.push('/settings')}>
           <View style={styles.navText}>
-            <Text style={styles.navLabel}>Settings</Text>
-            <Text style={styles.navHint}>Preferences and display</Text>
+            <Text selectable={false} style={styles.navLabel}>Settings</Text>
+            <Text selectable={false} style={styles.navHint}>Preferences and display</Text>
           </View>
-          <Text style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/history')}>
           <View style={styles.navText}>
-            <Text style={styles.navLabel}>History</Text>
-            <Text style={styles.navHint}>Sessions and exports</Text>
+            <Text selectable={false} style={styles.navLabel}>History</Text>
+            <Text selectable={false} style={styles.navHint}>Sessions and exports</Text>
           </View>
-          <Text style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
 
         <Pressable style={styles.navRow} onPress={() => router.push('/insights')}>
           <View style={styles.navText}>
-            <Text style={styles.navLabel}>Insights</Text>
-            <Text style={styles.navHint}>Progress and trends</Text>
+            <Text selectable={false} style={styles.navLabel}>Insights</Text>
+            <Text selectable={false} style={styles.navHint}>Progress and trends</Text>
           </View>
-          <Text style={styles.navArrow}>›</Text>
+          <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
       </ScrollView>
     </View>
