@@ -70,9 +70,9 @@ function NativeHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props)
 
 const styles = StyleSheet.create({
   button: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: 'rgba(255,255,255,0.6)',
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '400',
     zIndex: 1,
   },

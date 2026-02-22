@@ -2,9 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
-import { StatCard } from '@/components/StatCard';
 import { ScreenHeader } from '@/components/ScreenHeader';
-import { buildInsights } from '@/analytics/insights';
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -22,17 +20,9 @@ export default function HistoryScreen() {
     );
   }
 
-  const stats = buildInsights(history);
-
   return (
     <View style={styles.container}>
       <ScreenHeader title="History" />
-
-      <View style={styles.statsGrid}>
-        {stats.map((stat) => (
-          <StatCard key={stat.label} label={stat.label} value={String(stat.value)} />
-        ))}
-      </View>
 
       <FlatList
         data={history}
@@ -57,16 +47,9 @@ export default function HistoryScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0EB' },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-    paddingHorizontal: 24,
-    paddingTop: 8,
-  },
   listContent: {
     paddingHorizontal: 24,
+    paddingTop: 8,
     paddingBottom: 24,
   },
   sessionRow: { padding: 12, backgroundColor: '#fff', borderRadius: 8, marginBottom: 8 },
