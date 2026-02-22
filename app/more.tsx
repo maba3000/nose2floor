@@ -33,10 +33,10 @@ export default function MoreScreen() {
     <View style={styles.container}>
       <ScreenHeader title="More" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Pressable style={styles.navRow} onPress={() => router.push('/settings')}>
+        <Pressable style={styles.navRow} onPress={() => router.push('/insights')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Settings</Text>
-            <Text selectable={false} style={styles.navHint}>Preferences and display</Text>
+            <Text selectable={false} style={styles.navLabel}>Insights</Text>
+            <Text selectable={false} style={styles.navHint}>Progress and trends</Text>
           </View>
           <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
@@ -49,10 +49,18 @@ export default function MoreScreen() {
           <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
 
-        <Pressable style={styles.navRow} onPress={() => router.push('/insights')}>
+        <Pressable style={styles.navRow} onPress={() => router.push('/settings')}>
           <View style={styles.navText}>
-            <Text selectable={false} style={styles.navLabel}>Insights</Text>
-            <Text selectable={false} style={styles.navHint}>Progress and trends</Text>
+            <Text selectable={false} style={styles.navLabel}>Settings</Text>
+            <Text selectable={false} style={styles.navHint}>Preferences and display</Text>
+          </View>
+          <Text selectable={false} style={styles.navArrow}>›</Text>
+        </Pressable>
+
+        <Pressable style={styles.navRow} onPress={() => router.push('/data')}>
+          <View style={styles.navText}>
+            <Text selectable={false} style={styles.navLabel}>Data</Text>
+            <Text selectable={false} style={styles.navHint}>Export and import</Text>
           </View>
           <Text selectable={false} style={styles.navArrow}>›</Text>
         </Pressable>
