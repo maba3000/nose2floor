@@ -15,20 +15,50 @@ interface Props {
   color: string;
   onHold: () => void;
   holdDurationMs?: number;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
-export function HoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
+export function HoldButton({
+  label,
+  color,
+  onHold,
+  holdDurationMs = 600,
+  accessibilityLabel,
+  accessibilityHint,
+}: Props) {
   if (Platform.OS === 'web') {
     return (
-      <WebHoldButton label={label} color={color} onHold={onHold} holdDurationMs={holdDurationMs} />
+      <WebHoldButton
+        label={label}
+        color={color}
+        onHold={onHold}
+        holdDurationMs={holdDurationMs}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+      />
     );
   }
   return (
-    <NativeHoldButton label={label} color={color} onHold={onHold} holdDurationMs={holdDurationMs} />
+    <NativeHoldButton
+      label={label}
+      color={color}
+      onHold={onHold}
+      holdDurationMs={holdDurationMs}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
+    />
   );
 }
 
-function NativeHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
+function NativeHoldButton({
+  label,
+  color,
+  onHold,
+  holdDurationMs = 600,
+  accessibilityLabel,
+  accessibilityHint,
+}: Props) {
   const scale = useSharedValue(1);
   const progress = useSharedValue(0);
 
@@ -60,9 +90,21 @@ function NativeHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props)
 
   return (
     <GestureDetector gesture={gesture}>
-      <Animated.View style={[styles.button, animatedStyle]}>
+      <Animated.View
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? label}
+        accessibilityHint={accessibilityHint}
+        style={[styles.button, animatedStyle]}
+      >
         <Animated.View pointerEvents="none" style={[styles.progress, progressStyle]} />
-        <Text selectable={false} style={styles.label}>
+        <Text
+          selectable={false}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+          maxFontSizeMultiplier={1.2}
+          style={styles.label}
+        >
           {label}
         </Text>
       </Animated.View>
@@ -100,7 +142,14 @@ const styles = StyleSheet.create({
   },
 });
 
-function WebHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
+function WebHoldButton({
+  label,
+  color,
+  onHold,
+  holdDurationMs = 600,
+  accessibilityLabel,
+  accessibilityHint,
+}: Props) {
   const [pressed, setPressed] = useState(false);
   const [progress, setProgress] = useState(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -165,12 +214,22 @@ function WebHoldButton({ label, color, onHold, holdDurationMs = 600 }: Props) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (e as any).stopPropagation?.();
       }}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityHint={accessibilityHint}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {...({ onContextMenu: (e: any) => e.preventDefault() } as any)}
       style={[styles.button, baseStyle]}
     >
       <View pointerEvents="none" style={[styles.progress, progressStyle]} />
-      <Text selectable={false} style={styles.label}>
+      <Text
+        selectable={false}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.85}
+        maxFontSizeMultiplier={1.2}
+        style={styles.label}
+      >
         {label}
       </Text>
     </Pressable>

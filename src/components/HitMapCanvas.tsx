@@ -27,6 +27,12 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
   const crosshairColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const hitFill = theme.isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)';
   const hitStroke = theme.isDark ? 'rgba(0,0,0,0.6)' : '#FFFFFF';
+  const displayHits = useMemo(() => {
+    const maxHits = 500;
+    if (hits.length <= maxHits) return hits;
+    const step = Math.ceil(hits.length / maxHits);
+    return hits.filter((_, index) => index % step === 0);
+  }, [hits]);
 
   return (
     <Canvas style={{ width: size, height: size }}>
@@ -56,7 +62,7 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
         color={crosshairColor}
         strokeWidth={1}
       />
-      {hits.map((hit, i) => (
+      {displayHits.map((hit, i) => (
         <React.Fragment key={`hit-${i}`}>
           <Circle cx={cx + hit.dx * hitScale} cy={cy + hit.dy * hitScale} r={5} color={hitFill} />
           <Circle

@@ -27,6 +27,12 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
   const crosshairColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
   const hitFill = theme.isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)';
   const hitBorder = theme.isDark ? 'rgba(0,0,0,0.6)' : '#fff';
+  const displayHits = useMemo(() => {
+    const maxHits = 500;
+    if (hits.length <= maxHits) return hits;
+    const step = Math.ceil(hits.length / maxHits);
+    return hits.filter((_, index) => index % step === 0);
+  }, [hits]);
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
@@ -73,7 +79,7 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
           },
         ]}
       />
-      {hits.map((hit, i) => (
+      {displayHits.map((hit, i) => (
         <View
           key={i}
           style={[

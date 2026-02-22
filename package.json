@@ -10,7 +10,7 @@
     "web": "EXPO_WEB_USE_HERMES=false expo start --web",
     "generate:icons": "node scripts/generate-icons.cjs",
     "generate:licenses": "npx license-kit report --format text --output public/licenses.txt --dm none && node -e \"require('fs').copyFileSync('public/licenses.txt','assets/licenses.txt')\"",
-    "postinstall": "npm run generate:licenses",
+    "postinstall": "npm run generate:licenses || echo \"Skipping license generation (offline).\"",
     "test": "jest",
     "lint": "eslint .",
     "format": "prettier --write .",

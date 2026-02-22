@@ -1,5 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Pressable,
+  Alert,
+  Platform,
+} from 'react-native';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useHistoryStore } from '@/store/historyStore';
 import { DEFAULT_SETTINGS } from '@/domain/entities';
@@ -31,17 +40,35 @@ export default function DataScreen() {
       setImportStatus('Paste JSON to import.');
       return;
     }
+    let data;
     try {
-      const data = importData(raw);
+      data = importData(raw);
+    } catch {
+      setImportStatus('Import failed: invalid JSON.');
+      return;
+    }
+
+    const applyImport = () => {
       const nextSettings = { ...DEFAULT_SETTINGS, ...data.settings };
       updateSettings(nextSettings);
       replaceHistory(data.history);
       setImportJson('');
       setExportJson(exportData(nextSettings, data.history));
       setImportStatus('Import successful.');
-    } catch (e) {
-      setImportStatus('Import failed: invalid JSON.');
+    };
+
+    const title = 'Import data?';
+    const message = 'This will replace your current settings and history.';
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) applyImport();
+      return;
     }
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Import', style: 'destructive', onPress: applyImport },
+    ]);
   }
 
   return (

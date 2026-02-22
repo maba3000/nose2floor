@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  Pressable,
+  Alert,
+  Platform,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
 import { ScreenHeader } from '@/components/ScreenHeader';
@@ -12,6 +21,7 @@ export default function HistoryScreen() {
   const history = useHistoryStore((s) => s.history);
   const deleteSession = useHistoryStore((s) => s.deleteSession);
   const addSession = useHistoryStore((s) => s.addSession);
+  const replaceHistory = useHistoryStore((s) => s.replaceHistory);
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [undoSession, setUndoSession] = useState<WorkoutSession | null>(null);
@@ -44,6 +54,40 @@ export default function HistoryScreen() {
     undoTimerRef.current = setTimeout(() => setUndoSession(null), 4000);
   };
 
+  const confirmDelete = (session: WorkoutSession) => {
+    const title = 'Delete session?';
+    const message = 'This will remove the session from history.';
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) handleDelete(session);
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => handleDelete(session) },
+    ]);
+  };
+
+  const confirmClearHistory = () => {
+    const title = 'Clear all history?';
+    const message = 'This cannot be undone.';
+    if (Platform.OS === 'web') {
+      // eslint-disable-next-line no-alert
+      const ok = window.confirm(`${title}\n\n${message}`);
+      if (ok) replaceHistory([]);
+      return;
+    }
+    Alert.alert(title, message, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => replaceHistory([]),
+      },
+    ]);
+  };
+
   const handleUndo = () => {
     if (!undoSession) return;
     addSession(undoSession);
@@ -58,10 +102,19 @@ export default function HistoryScreen() {
         data={history}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
+        ListHeaderComponent={
+          <View style={styles.listHeader}>
+            <Pressable style={styles.clearButton} onPress={confirmClearHistory}>
+              <Text selectable={false} style={styles.clearButtonText}>
+                Clear history
+              </Text>
+            </Pressable>
+          </View>
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             onPress={() => item.reps > 0 && router.push(`/history/${item.id}`)}
-            onLongPress={() => handleDelete(item)}
+            onLongPress={() => confirmDelete(item)}
             style={styles.sessionRow}
           >
             <View style={styles.sessionMeta}>
@@ -77,7 +130,7 @@ export default function HistoryScreen() {
                 // Prevent row press on web.
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (e as any).stopPropagation?.();
-                handleDelete(item);
+                confirmDelete(item);
               }}
               style={styles.deleteButton}
             >
@@ -112,6 +165,19 @@ const createStyles = (theme: Theme) =>
       paddingTop: 8,
       paddingBottom: 72,
     },
+    listHeader: {
+      alignItems: 'flex-end',
+      marginBottom: 8,
+    },
+    clearButton: {
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.dangerBorder,
+      backgroundColor: theme.dangerBackground,
+    },
+    clearButtonText: { fontSize: 12, fontWeight: '500', color: theme.dangerText },
     sessionRow: {
       padding: 12,
       backgroundColor: theme.card,

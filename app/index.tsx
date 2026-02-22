@@ -396,6 +396,7 @@ export default function HomeScreen() {
                 label="Hold to Stop"
                 color={theme.actionDanger}
                 onHold={handleStopSession}
+                accessibilityHint="Stops the current session."
               />
             </View>
           </>
@@ -416,11 +417,13 @@ export default function HomeScreen() {
                 label="Hold for More"
                 color={theme.actionPrimary}
                 onHold={() => router.push('/more')}
+                accessibilityHint="Opens more options and screens."
               />
               <HoldButton
                 label="Hold to Start"
                 color={theme.actionPrimary}
                 onHold={handleStartSession}
+                accessibilityHint="Starts a manual session."
               />
             </View>
           </>
