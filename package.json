@@ -9,6 +9,8 @@
     "ios": "expo start --ios",
     "web": "EXPO_WEB_USE_HERMES=false expo start --web",
     "generate:icons": "node scripts/generate-icons.cjs",
+    "generate:licenses": "npx license-kit report --format text --output public/licenses.txt --dm none",
+    "postinstall": "npm run generate:licenses",
     "test": "jest",
     "lint": "eslint .",
     "format": "prettier --write .",
