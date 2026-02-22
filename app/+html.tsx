@@ -30,6 +30,16 @@ export default function Root({ children }: PropsWithChildren) {
             user-select: none !important;
             -webkit-touch-callout: none !important;
           }
+          html,
+          body,
+          #root {
+            height: 100%;
+            overflow: hidden;
+          }
+          body {
+            position: fixed;
+            width: 100%;
+          }
           input,
           textarea,
           [contenteditable="true"] {
