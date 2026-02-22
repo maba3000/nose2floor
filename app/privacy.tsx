@@ -1,8 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 export default function PrivacyScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View style={styles.container}>
       <ScreenHeader title="Privacy" />
@@ -30,16 +35,17 @@ export default function PrivacyScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  content: { padding: 24, paddingTop: 8, gap: 12 },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-  },
-  title: { fontSize: 16, fontWeight: '600', color: '#1A202C', marginBottom: 6 },
-  body: { fontSize: 14, color: 'rgba(0,0,0,0.7)', lineHeight: 20 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    content: { padding: 24, paddingTop: 8, gap: 12 },
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 12,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    title: { fontSize: 16, fontWeight: '600', color: theme.text, marginBottom: 6 },
+    body: { fontSize: 14, color: theme.textMuted, lineHeight: 20 },
+  });

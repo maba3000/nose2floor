@@ -1,6 +1,7 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, StyleSheet } from 'react-native';
 import type { Hit } from '../domain/entities';
+import { useTheme } from '@/hooks/useTheme';
 
 interface Props {
   size: number;
@@ -8,7 +9,8 @@ interface Props {
   hits: Hit[];
 }
 
-const RING_COLORS = ['#FFFFFF', '#FFB74D', '#FF7043', '#E53935', '#D32F2F'];
+const RING_COLORS_LIGHT = ['#FFFFFF', '#FFB74D', '#FF7043', '#E53935', '#D32F2F'];
+const RING_COLORS_DARK = ['#2A2A2D', '#6F4B1E', '#7C3A25', '#7A1E1B', '#5E1412'];
 const ZONES = [1.0, 0.8, 0.6, 0.4, 0.2];
 
 export const HitMapCanvas = memo(({ size, hits }: Props) => {
@@ -16,10 +18,19 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
   const cy = size / 2;
   const fitRadius = (size / 2) * 0.9;
   const hitScale = fitRadius;
+  const theme = useTheme();
+  const ringColors = useMemo(
+    () => (theme.isDark ? RING_COLORS_DARK : RING_COLORS_LIGHT),
+    [theme.isDark],
+  );
+  const ringBorder = theme.isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
+  const crosshairColor = theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const hitFill = theme.isDark ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)';
+  const hitBorder = theme.isDark ? 'rgba(0,0,0,0.6)' : '#fff';
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      {RING_COLORS.map((color, i) => {
+      {ringColors.map((color, i) => {
         const radius = fitRadius * ZONES[i];
         const diameter = radius * 2;
         return (
@@ -32,6 +43,7 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
                 height: diameter,
                 borderRadius: diameter / 2,
                 backgroundColor: color,
+                borderColor: ringBorder,
               },
             ]}
           />
@@ -45,6 +57,7 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
             top: cy - 0.5,
             width: fitRadius * 2,
             height: 1,
+            backgroundColor: crosshairColor,
           },
         ]}
       />
@@ -56,6 +69,7 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
             top: cy - fitRadius,
             width: 1,
             height: fitRadius * 2,
+            backgroundColor: crosshairColor,
           },
         ]}
       />
@@ -67,6 +81,8 @@ export const HitMapCanvas = memo(({ size, hits }: Props) => {
             {
               left: cx + hit.dx * hitScale - 5,
               top: cy + hit.dy * hitScale - 5,
+              backgroundColor: hitFill,
+              borderColor: hitBorder,
             },
           ]}
         />
@@ -80,19 +96,15 @@ const styles = StyleSheet.create({
   ring: {
     position: 'absolute',
     borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
   },
   crosshair: {
     position: 'absolute',
-    backgroundColor: 'rgba(0,0,0,0.06)',
   },
   hit: {
     position: 'absolute',
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: 'rgba(0,0,0,0.7)',
     borderWidth: 1.5,
-    borderColor: '#fff',
   },
 });

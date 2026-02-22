@@ -1,13 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Platform, ScrollView } from 'react-native';
 import { Asset } from 'expo-asset';
 import * as FileSystem from 'expo-file-system';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import licensesAsset from '../assets/licenses.txt';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 export default function LicensesScreen() {
   const [licenseText, setLicenseText] = useState<string | null>(null);
   const [loadError, setLoadError] = useState(false);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,16 +60,17 @@ export default function LicensesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  content: { padding: 24, paddingTop: 8, paddingBottom: 32 },
-  note: { fontSize: 13, color: 'rgba(0,0,0,0.65)', marginBottom: 12, lineHeight: 18 },
-  licenseBox: {
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: '#fff',
-    padding: 12,
-  },
-  licenseText: { fontSize: 12, lineHeight: 18, color: 'rgba(0,0,0,0.75)' },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    content: { padding: 24, paddingTop: 8, paddingBottom: 32 },
+    note: { fontSize: 13, color: theme.textSubtle, marginBottom: 12, lineHeight: 18 },
+    licenseBox: {
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.card,
+      padding: 12,
+    },
+    licenseText: { fontSize: 12, lineHeight: 18, color: theme.textMuted },
+  });

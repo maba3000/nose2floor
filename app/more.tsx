@@ -1,13 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 const SOURCE_URL = 'https://github.com/maba3000/nose2floor';
 
 export default function MoreScreen() {
   const router = useRouter();
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [copied, setCopied] = useState(false);
   const copiedTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -146,23 +150,24 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  content: { padding: 24, paddingTop: 8 },
-  navRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    marginBottom: 12,
-  },
-  navText: { flex: 1 },
-  navLabel: { fontSize: 16, fontWeight: '500', color: '#1A202C' },
-  navHint: { fontSize: 12, fontWeight: '400', color: 'rgba(0,0,0,0.55)', marginTop: 2 },
-  navArrow: { fontSize: 20, color: 'rgba(0,0,0,0.35)', marginLeft: 12 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    content: { padding: 24, paddingTop: 8 },
+    navRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+      marginBottom: 12,
+    },
+    navText: { flex: 1 },
+    navLabel: { fontSize: 16, fontWeight: '500', color: theme.text },
+    navHint: { fontSize: 12, fontWeight: '400', color: theme.textSubtle, marginTop: 2 },
+    navArrow: { fontSize: 20, color: theme.textFaint, marginLeft: 12 },
+  });

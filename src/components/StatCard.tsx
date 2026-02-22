@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 interface Props {
   label: string;
@@ -7,6 +9,9 @@ interface Props {
 }
 
 export function StatCard({ label, value }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   return (
     <View style={styles.card}>
       <Text selectable={false} style={styles.value}>
@@ -19,23 +24,26 @@ export function StatCard({ label, value }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 12,
-    flexBasis: '32%',
-    flexGrow: 1,
-  },
-  value: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A202C',
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: 'rgba(0,0,0,0.4)',
-    marginTop: 2,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    card: {
+      backgroundColor: theme.card,
+      borderRadius: 10,
+      padding: 12,
+      flexBasis: '32%',
+      flexGrow: 1,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    value: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    label: {
+      fontSize: 12,
+      fontWeight: '400',
+      color: theme.textFaint,
+      marginTop: 2,
+    },
+  });

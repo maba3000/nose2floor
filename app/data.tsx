@@ -1,16 +1,20 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useHistoryStore } from '@/store/historyStore';
 import { DEFAULT_SETTINGS } from '@/domain/entities';
 import { exportData, importData } from '@/persistence/storage';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 export default function DataScreen() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const replaceHistory = useHistoryStore((s) => s.replaceHistory);
   const history = useHistoryStore((s) => s.history);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
   const [exportJson, setExportJson] = useState('');
   const [importJson, setImportJson] = useState('');
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -61,6 +65,7 @@ export default function DataScreen() {
           editable={false}
           multiline
           placeholder="Export JSON will appear here"
+          placeholderTextColor={theme.textFaint}
           style={styles.textArea}
         />
 
@@ -72,6 +77,7 @@ export default function DataScreen() {
           onChangeText={setImportJson}
           multiline
           placeholder="Paste JSON here..."
+          placeholderTextColor={theme.textFaint}
           style={styles.textArea}
         />
         <Pressable style={styles.button} onPress={handleImport}>
@@ -89,37 +95,38 @@ export default function DataScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  content: { padding: 24, paddingTop: 8 },
-  note: { fontSize: 12, color: 'rgba(0,0,0,0.55)', marginBottom: 12, lineHeight: 18 },
-  subLabel: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 8,
-    marginBottom: 6,
-    color: 'rgba(0,0,0,0.55)',
-  },
-  button: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    marginBottom: 8,
-  },
-  buttonLabel: { fontSize: 14, fontWeight: '400', color: '#1A202C' },
-  textArea: {
-    minHeight: 120,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    backgroundColor: '#fff',
-    padding: 10,
-    fontSize: 13,
-    color: '#1A202C',
-    marginBottom: 8,
-  },
-  status: { fontSize: 13, color: 'rgba(0,0,0,0.6)', marginTop: 4 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    content: { padding: 24, paddingTop: 8 },
+    note: { fontSize: 12, color: theme.textSubtle, marginBottom: 12, lineHeight: 18 },
+    subLabel: {
+      fontSize: 13,
+      fontWeight: '500',
+      marginTop: 8,
+      marginBottom: 6,
+      color: theme.textSubtle,
+    },
+    button: {
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+      marginBottom: 8,
+    },
+    buttonLabel: { fontSize: 14, fontWeight: '400', color: theme.text },
+    textArea: {
+      minHeight: 120,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.card,
+      padding: 10,
+      fontSize: 13,
+      color: theme.text,
+      marginBottom: 8,
+    },
+    status: { fontSize: 13, color: theme.textSubtle, marginTop: 4 },
+  });

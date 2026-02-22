@@ -1,10 +1,11 @@
 import 'react-native-get-random-values';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, LayoutChangeEvent, Pressable } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, LayoutChangeEvent, Pressable, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { v4 as uuid } from 'uuid';
+import * as Haptics from 'expo-haptics';
 
 import { useSessionStore } from '@/store/sessionStore';
 import { useHistoryStore } from '@/store/historyStore';
@@ -17,6 +18,9 @@ import { HoldButton } from '@/components/HoldButton';
 import { HitMarkerOverlay } from '@/components/HitMarkerOverlay';
 import { CornerBadge } from '@/components/CornerBadge';
 import type { Hit } from '@/domain/entities';
+import { clearAutoSession, loadAutoSession, saveAutoSession } from '@/persistence/storage';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 const DEFAULT_MAX_RADIUS = 190;
 
@@ -31,6 +35,7 @@ export default function HomeScreen() {
   const hits = useSessionStore((s) => s.hits);
   const startSession = useSessionStore((s) => s.startSession);
   const recordHit = useSessionStore((s) => s.recordHit);
+  const loadSession = useSessionStore((s) => s.loadSession);
   const reset = useSessionStore((s) => s.reset);
   const lastTap = useSessionStore((s) => s.lastTap);
 
@@ -38,6 +43,7 @@ export default function HomeScreen() {
   const upsertSession = useHistoryStore((s) => s.upsertSession);
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const theme = useTheme();
 
   const sessionStartTime = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
@@ -51,7 +57,24 @@ export default function HomeScreen() {
 
   useTimer();
 
+  const styles = useMemo(() => createStyles(theme), [theme]);
+
   const checkDebounce = useDebounce(settings.hitCooldownMs);
+
+  const triggerHitHaptic = useCallback(() => {
+    if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+  }, [settings.hapticsEnabled]);
+
+  const triggerStartHaptic = useCallback(() => {
+    if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+  }, [settings.hapticsEnabled]);
+
+  const triggerStopHaptic = useCallback(() => {
+    if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+  }, [settings.hapticsEnabled]);
 
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
@@ -89,19 +112,32 @@ export default function HomeScreen() {
       const tap = { x: tapX, y: tapY, score, at: now };
 
       recordHit(hit, tap, isActive);
+      triggerHitHaptic();
 
       if (settings.sessionMode === 'auto' && isActive) {
         if (!sessionIdRef.current) {
           sessionIdRef.current = uuid();
           sessionStartTime.current = Date.now();
         }
+        const nextReps = reps + 1;
+        const nextTotal = totalScore + hit.score;
+        const nextHits = [...hits, hit];
         upsertSession({
           id: sessionIdRef.current,
           startedAt: sessionStartTime.current || now,
           durationSeconds: elapsedSeconds,
-          reps: reps + 1,
-          totalScore: totalScore + hit.score,
-          hits: [...hits, hit],
+          reps: nextReps,
+          totalScore: nextTotal,
+          hits: nextHits,
+          bullseyeScale: settings.bullseyeScale,
+        });
+        saveAutoSession({
+          id: sessionIdRef.current,
+          startedAt: sessionStartTime.current || now,
+          durationSeconds: elapsedSeconds,
+          reps: nextReps,
+          totalScore: nextTotal,
+          hits: nextHits,
           bullseyeScale: settings.bullseyeScale,
         });
       }
@@ -110,6 +146,7 @@ export default function HomeScreen() {
       checkDebounce,
       isActive,
       recordHit,
+      triggerHitHaptic,
       settings.sessionMode,
       settings.bullseyeScale,
       elapsedSeconds,
@@ -120,19 +157,42 @@ export default function HomeScreen() {
     ],
   );
 
+  const handlePress = useCallback(
+    (e: {
+      nativeEvent: { locationX?: number; locationY?: number; offsetX?: number; offsetY?: number };
+    }) => {
+      const nativeEvent = e.nativeEvent;
+      const tapX =
+        typeof nativeEvent.locationX === 'number'
+          ? nativeEvent.locationX
+          : (nativeEvent.offsetX ?? 0);
+      const tapY =
+        typeof nativeEvent.locationY === 'number'
+          ? nativeEvent.locationY
+          : (nativeEvent.offsetY ?? 0);
+      handleTap(tapX, tapY);
+    },
+    [handleTap],
+  );
+
   const handleStartSession = useCallback(() => {
     sessionStartTime.current = Date.now();
     sessionIdRef.current = uuid();
     startSession();
-  }, [startSession]);
+    triggerStartHaptic();
+  }, [startSession, triggerStartHaptic]);
 
   const handleStopSession = useCallback(() => {
     if (settings.sessionMode === 'auto') {
       autoStartBlockedRef.current = true;
     }
     if (reps === 0) {
+      if (settings.sessionMode === 'auto') {
+        clearAutoSession();
+      }
       sessionIdRef.current = null;
       reset();
+      triggerStopHaptic();
       return;
     }
     const id = sessionIdRef.current ?? uuid();
@@ -148,11 +208,13 @@ export default function HomeScreen() {
     };
     if (settings.sessionMode === 'auto') {
       upsertSession(session);
+      clearAutoSession();
     } else {
       addSession(session);
     }
     sessionIdRef.current = null;
     reset();
+    triggerStopHaptic();
   }, [
     addSession,
     upsertSession,
@@ -163,6 +225,7 @@ export default function HomeScreen() {
     settings.bullseyeScale,
     settings.sessionMode,
     reset,
+    triggerStopHaptic,
   ]);
 
   const formatTime = (s: number) =>
@@ -187,6 +250,17 @@ export default function HomeScreen() {
   }, [settings.showIntro]);
 
   useEffect(() => {
+    if (settings.sessionMode !== 'auto') return;
+    if (introVisible) return;
+    if (isActive) return;
+    const session = loadAutoSession();
+    if (!session || session.reps === 0) return;
+    sessionStartTime.current = session.startedAt;
+    sessionIdRef.current = session.id;
+    loadSession(session);
+  }, [settings.sessionMode, introVisible, isActive, loadSession]);
+
+  useEffect(() => {
     if (settings.sessionMode === 'auto') {
       autoStartBlockedRef.current = false;
     }
@@ -196,6 +270,7 @@ export default function HomeScreen() {
     if (settings.sessionMode !== 'auto') return;
     if (introVisible) return;
     if (autoStartBlockedRef.current) return;
+    if (sessionIdRef.current) return;
     if (!isActive) {
       sessionStartTime.current = Date.now();
       sessionIdRef.current = uuid();
@@ -208,6 +283,15 @@ export default function HomeScreen() {
     if (!isActive || !sessionIdRef.current) return;
     if (reps === 0) return;
     upsertSession({
+      id: sessionIdRef.current,
+      startedAt: sessionStartTime.current || Date.now(),
+      durationSeconds: elapsedSeconds,
+      reps,
+      totalScore,
+      hits,
+      bullseyeScale: settings.bullseyeScale,
+    });
+    saveAutoSession({
       id: sessionIdRef.current,
       startedAt: sessionStartTime.current || Date.now(),
       durationSeconds: elapsedSeconds,
@@ -269,29 +353,7 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
-      <Pressable
-        onPress={(e) => {
-          const nativeEvent = e.nativeEvent as unknown as {
-            locationX?: number;
-            locationY?: number;
-            offsetX?: number;
-            offsetY?: number;
-            pageX?: number;
-            pageY?: number;
-          };
-          const tapX =
-            typeof nativeEvent.locationX === 'number'
-              ? nativeEvent.locationX
-              : (nativeEvent.offsetX ?? 0);
-          const tapY =
-            typeof nativeEvent.locationY === 'number'
-              ? nativeEvent.locationY
-              : (nativeEvent.offsetY ?? 0);
-          handleTap(tapX, tapY);
-        }}
-        style={styles.tapLayer}
-        pointerEvents="box-only"
-      />
+      <Pressable onPress={handlePress} style={styles.tapLayer} pointerEvents="box-only" />
       {settings.showBullseye && canvasSize.width > 0 && (
         <View style={[StyleSheet.absoluteFill, styles.canvasWrapper]} pointerEvents="none">
           <BullseyeCanvas
@@ -330,7 +392,11 @@ export default function HomeScreen() {
               ) : (
                 <View pointerEvents="none" />
               )}
-              <HoldButton label="Hold to Stop" color="#E53935" onHold={handleStopSession} />
+              <HoldButton
+                label="Hold to Stop"
+                color={theme.actionDanger}
+                onHold={handleStopSession}
+              />
             </View>
           </>
         ) : (
@@ -348,10 +414,14 @@ export default function HomeScreen() {
             <View style={styles.bottomRow} pointerEvents="box-none">
               <HoldButton
                 label="Hold for More"
-                color="#2E7D32"
+                color={theme.actionPrimary}
                 onHold={() => router.push('/more')}
               />
-              <HoldButton label="Hold to Start" color="#2E7D32" onHold={handleStartSession} />
+              <HoldButton
+                label="Hold to Start"
+                color={theme.actionPrimary}
+                onHold={handleStartSession}
+              />
             </View>
           </>
         )}
@@ -360,51 +430,52 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  tapLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
-  overlayLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
-  canvasWrapper: { alignItems: 'center', justifyContent: 'center' },
-  badgeTopLeft: { position: 'absolute', top: 16, left: 16 },
-  topRight: { position: 'absolute', top: 16, right: 16 },
-  bottomRow: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-  },
-  introOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 5,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-  },
-  introBanner: {
-    width: '100%',
-    maxWidth: 420,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 14,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    gap: 8,
-  },
-  introTitle: { fontSize: 18, fontWeight: '600', color: '#1A202C' },
-  introBody: { fontSize: 14, color: 'rgba(0,0,0,0.7)', lineHeight: 20 },
-  introActions: { flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' },
-  introDismiss: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: '#F5F0EB',
-    marginTop: 4,
-  },
-  introDismissText: { fontSize: 12, fontWeight: '500', color: '#1A202C' },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    tapLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
+    overlayLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
+    canvasWrapper: { alignItems: 'center', justifyContent: 'center' },
+    badgeTopLeft: { position: 'absolute', top: 16, left: 16 },
+    topRight: { position: 'absolute', top: 16, right: 16 },
+    bottomRow: {
+      position: 'absolute',
+      left: 16,
+      right: 16,
+      bottom: 16,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+    },
+    introOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: 5,
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 24,
+    },
+    introBanner: {
+      width: '100%',
+      maxWidth: 420,
+      backgroundColor: theme.card,
+      borderRadius: 14,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.border,
+      gap: 8,
+    },
+    introTitle: { fontSize: 18, fontWeight: '600', color: theme.text },
+    introBody: { fontSize: 14, color: theme.textMuted, lineHeight: 20 },
+    introActions: { flexDirection: 'row', gap: 8, marginTop: 4, flexWrap: 'wrap' },
+    introDismiss: {
+      alignSelf: 'flex-start',
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+      backgroundColor: theme.background,
+      marginTop: 4,
+    },
+    introDismissText: { fontSize: 12, fontWeight: '500', color: theme.text },
+  });

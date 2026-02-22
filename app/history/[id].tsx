@@ -1,15 +1,30 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
 import { HitMapCanvas } from '@/components/HitMapCanvas';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const session = useHistoryStore((s) => s.history.find((h) => h.id === id));
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
-  if (!session) return <Text selectable={false}>Session not found.</Text>;
+  if (!session) {
+    return (
+      <View style={styles.container}>
+        <ScreenHeader title="Session" />
+        <View style={styles.empty}>
+          <Text selectable={false} style={styles.emptyText}>
+            Session not found.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   const date = new Date(session.startedAt);
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
@@ -51,13 +66,21 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  subHeader: { paddingHorizontal: 24, paddingBottom: 8, fontSize: 14, color: 'rgba(0,0,0,0.6)' },
-  statsRow: { flexDirection: 'row', paddingHorizontal: 24, paddingBottom: 8 },
-  stat: { flex: 1, alignItems: 'center' },
-  statValue: { fontSize: 24, fontWeight: '500', color: '#111' },
-  statLabel: { fontSize: 12, letterSpacing: 1, color: 'rgba(0,0,0,0.4)' },
-  content: { alignItems: 'center', paddingBottom: 24 },
-  canvasWrapper: { marginTop: 16 },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    subHeader: {
+      paddingHorizontal: 24,
+      paddingBottom: 8,
+      fontSize: 14,
+      color: theme.textSubtle,
+    },
+    statsRow: { flexDirection: 'row', paddingHorizontal: 24, paddingBottom: 8 },
+    stat: { flex: 1, alignItems: 'center' },
+    statValue: { fontSize: 24, fontWeight: '500', color: theme.text },
+    statLabel: { fontSize: 12, letterSpacing: 1, color: theme.textFaint },
+    content: { alignItems: 'center', paddingBottom: 24 },
+    canvasWrapper: { marginTop: 16 },
+    empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+    emptyText: { fontSize: 16, color: theme.textFaint },
+  });

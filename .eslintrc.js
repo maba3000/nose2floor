@@ -4,6 +4,7 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
+    warnOnUnsupportedTypeScriptVersion: false,
   },
   plugins: ['@typescript-eslint', 'react-hooks'],
   extends: [

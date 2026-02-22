@@ -1,13 +1,17 @@
-import React from 'react';
-import { View, Text, Switch, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo } from 'react';
+import { View, Text, Switch, StyleSheet, ScrollView, Pressable } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { AppSettings } from '@/domain/entities';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme, ThemeMode } from '@/theme';
 
 export default function SettingsScreen() {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   const hideAfterSeconds = Math.round(settings.hitMarkerAutoHideMs / 1000);
 
@@ -19,7 +23,9 @@ export default function SettingsScreen() {
           Session
         </Text>
         <View style={styles.row}>
-          <Text selectable={false}>Auto mode</Text>
+          <Text selectable={false} style={styles.rowLabel}>
+            Auto mode
+          </Text>
           <Switch
             value={settings.sessionMode === 'auto'}
             onValueChange={(v) =>
@@ -34,19 +40,61 @@ export default function SettingsScreen() {
           Auto mode starts when the app opens and saves as you go. Example: open the app, do
           push-ups, close it — everything is saved.
         </Text>
+
+        <Text selectable={false} style={styles.section}>
+          Appearance
+        </Text>
+        <View style={styles.appearanceRow}>
+          {(
+            [
+              ['light', 'Light'],
+              ['dark', 'Dark'],
+              ['system', 'System'],
+            ] as const
+          ).map(([value, label]) => {
+            const active = settings.themeMode === value;
+            return (
+              <Pressable
+                key={value}
+                onPress={() => updateSettings({ themeMode: value as ThemeMode })}
+                style={[styles.appearancePill, active && styles.appearancePillActive]}
+              >
+                <Text
+                  selectable={false}
+                  style={[styles.appearanceText, active && styles.appearanceTextActive]}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
         <View style={styles.row}>
-          <Text selectable={false}>Show intro on startup</Text>
+          <Text selectable={false} style={styles.rowLabel}>
+            Show intro on startup
+          </Text>
           <Switch
             value={settings.sessionMode === 'auto' ? false : settings.showIntro}
             disabled={settings.sessionMode === 'auto'}
             onValueChange={(v) => updateSettings({ showIntro: v })}
           />
         </View>
+        <View style={styles.row}>
+          <Text selectable={false} style={styles.rowLabel}>
+            Haptic feedback
+          </Text>
+          <Switch
+            value={settings.hapticsEnabled}
+            onValueChange={(v) => updateSettings({ hapticsEnabled: v })}
+          />
+        </View>
 
         <Text selectable={false} style={styles.section}>
           Hit Timing
         </Text>
-        <Text selectable={false}>Hit cooldown: {settings.hitCooldownMs}ms</Text>
+        <Text selectable={false} style={styles.rowLabel}>
+          Hit cooldown: {settings.hitCooldownMs}ms
+        </Text>
         <Slider
           minimumValue={100}
           maximumValue={1000}
@@ -54,6 +102,9 @@ export default function SettingsScreen() {
           value={settings.hitCooldownMs}
           onValueChange={(v) => updateSettings({ hitCooldownMs: v })}
         />
+        <Text selectable={false} style={styles.helpText}>
+          Lower is more sensitive. Higher reduces accidental double hits.
+        </Text>
 
         <Text selectable={false} style={styles.section}>
           Display
@@ -67,7 +118,9 @@ export default function SettingsScreen() {
           ] as const
         ).map(([key, label]) => (
           <View key={key} style={styles.row}>
-            <Text selectable={false}>{label}</Text>
+            <Text selectable={false} style={styles.rowLabel}>
+              {label}
+            </Text>
             <Switch
               value={settings[key]}
               onValueChange={(v) => updateSettings({ [key]: v } as Partial<AppSettings>)}
@@ -80,7 +133,9 @@ export default function SettingsScreen() {
             <Text selectable={false} style={styles.section}>
               Bull's-eye
             </Text>
-            <Text selectable={false}>Size: {settings.bullseyeScale.toFixed(1)}×</Text>
+            <Text selectable={false} style={styles.rowLabel}>
+              Size: {settings.bullseyeScale.toFixed(1)}×
+            </Text>
             <Slider
               minimumValue={0.5}
               maximumValue={2.0}
@@ -95,7 +150,9 @@ export default function SettingsScreen() {
           Hit Markers
         </Text>
         <View style={styles.row}>
-          <Text selectable={false}>Show hit markers</Text>
+          <Text selectable={false} style={styles.rowLabel}>
+            Show hit markers
+          </Text>
           <Switch
             value={settings.showHitMarkers}
             onValueChange={(v) => updateSettings({ showHitMarkers: v })}
@@ -104,7 +161,7 @@ export default function SettingsScreen() {
 
         {settings.showHitMarkers && (
           <>
-            <Text selectable={false}>
+            <Text selectable={false} style={styles.rowLabel}>
               Hide after: {hideAfterSeconds === 0 ? 'Never' : `${hideAfterSeconds}s`}
             </Text>
             <Slider
@@ -114,6 +171,9 @@ export default function SettingsScreen() {
               value={hideAfterSeconds}
               onValueChange={(v) => updateSettings({ hitMarkerAutoHideMs: v * 1000 })}
             />
+            <Text selectable={false} style={styles.helpText}>
+              Set to Never to keep markers on screen.
+            </Text>
           </>
         )}
       </ScrollView>
@@ -121,15 +181,30 @@ export default function SettingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F5F0EB' },
-  content: { padding: 24, paddingTop: 8 },
-  section: { fontSize: 16, fontWeight: '500', marginTop: 24, marginBottom: 8, color: '#2D3748' },
-  modeHint: { fontSize: 12, color: 'rgba(0,0,0,0.55)', marginBottom: 8 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginVertical: 8,
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: theme.background },
+    content: { padding: 24, paddingTop: 8 },
+    section: { fontSize: 16, fontWeight: '500', marginTop: 24, marginBottom: 8, color: theme.text },
+    modeHint: { fontSize: 12, color: theme.textSubtle, marginBottom: 8 },
+    helpText: { fontSize: 12, color: theme.textSubtle, marginTop: 4 },
+    rowLabel: { fontSize: 14, color: theme.text },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginVertical: 8,
+    },
+    appearanceRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+    appearancePill: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+      backgroundColor: theme.cardSoft,
+    },
+    appearancePillActive: { backgroundColor: theme.text, borderColor: theme.text },
+    appearanceText: { fontSize: 13, color: theme.text, fontWeight: '500' },
+    appearanceTextActive: { color: theme.card },
+  });

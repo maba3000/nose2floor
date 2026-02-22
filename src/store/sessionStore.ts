@@ -15,6 +15,12 @@ interface SessionState {
     tap: { x: number; y: number; score: number; at: number },
     saveToSession: boolean,
   ) => void;
+  loadSession: (session: {
+    reps: number;
+    totalScore: number;
+    durationSeconds: number;
+    hits: Hit[];
+  }) => void;
   tickTimer: () => void;
   reset: () => void;
 }
@@ -47,6 +53,17 @@ export const useSessionStore = create<SessionState>()((set) => ({
       lastHit: hit,
       lastTap: tap,
     })),
+
+  loadSession: (session) =>
+    set({
+      isActive: true,
+      reps: session.reps,
+      totalScore: session.totalScore,
+      elapsedSeconds: session.durationSeconds,
+      hits: session.hits,
+      lastHit: session.hits[session.hits.length - 1] ?? null,
+      lastTap: null,
+    }),
 
   tickTimer: () => set((s) => ({ elapsedSeconds: s.elapsedSeconds + 1 })),
 

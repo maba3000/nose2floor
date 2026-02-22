@@ -16488,6 +16488,16 @@ Type: MIT
 
 ------------------------------
 
+expo-haptics (15.0.8)
+URL: https://github.com/expo/expo
+Author: 650 Industries, Inc.
+
+Description: Provides access to the system's haptics engine on iOS, vibration effects on Android, and Web Vibration API on web.
+
+Type: MIT
+
+------------------------------
+
 expo-router (6.0.23)
 URL: https://github.com/expo/expo
 Author: 650 Industries, Inc.

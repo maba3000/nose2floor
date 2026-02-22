@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useTheme } from '@/hooks/useTheme';
+import type { Theme } from '@/theme';
 
 interface Props {
   x: number;
@@ -11,6 +13,8 @@ interface Props {
 export function HitMarkerOverlay({ x, y, score, showScore }: Props) {
   const arm = 24;
   const lineLength = arm * 2;
+  const theme = useTheme();
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -45,17 +49,20 @@ export function HitMarkerOverlay({ x, y, score, showScore }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  line: {
-    position: 'absolute',
-    width: 5,
-    backgroundColor: 'rgba(0,0,0,0.85)',
-    borderRadius: 2,
-  },
-  score: {
-    position: 'absolute',
-    color: 'rgba(0,0,0,0.85)',
-    fontSize: 20,
-    fontWeight: '500',
-  },
-});
+const createStyles = (theme: Theme) =>
+  StyleSheet.create({
+    line: {
+      position: 'absolute',
+      width: 5,
+      backgroundColor: theme.text,
+      borderRadius: 2,
+      opacity: 0.85,
+    },
+    score: {
+      position: 'absolute',
+      color: theme.text,
+      fontSize: 20,
+      fontWeight: '500',
+      opacity: 0.85,
+    },
+  });
