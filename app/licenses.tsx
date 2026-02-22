@@ -18,8 +18,8 @@ export default function LicensesScreen() {
       <ScreenHeader title="Licenses" />
       <View style={styles.content}>
         <Text selectable={false} style={styles.note}>
-          This app includes open source software. The full license texts are available in a
-          dedicated file.
+          This app includes open source software. The full license texts are generated from current
+          dependencies and published at `/licenses.txt`.
         </Text>
         <Pressable
           style={[styles.button, !licensesUrl && styles.buttonDisabled]}
