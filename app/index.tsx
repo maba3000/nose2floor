@@ -239,7 +239,8 @@ export default function HomeScreen() {
               Welcome
             </Text>
             <Text selectable={false} style={styles.introBody}>
-              Place your phone on the floor near your face and do push-ups. Try to tap the bull&apos;s-eye with your nose to count a rep.
+              Place your phone on the floor near your face and do push-ups. Try to tap the
+              bull&apos;s-eye with your nose to count a rep.
             </Text>
             <Text selectable={false} style={styles.introBody}>
               “Hold to Start” to begin.

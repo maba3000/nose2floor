@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Switch, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, Switch, StyleSheet, ScrollView } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { AppSettings } from '@/domain/entities';
@@ -18,35 +18,21 @@ export default function SettingsScreen() {
         <Text selectable={false} style={styles.section}>
           Session
         </Text>
-        <View style={styles.modeRow}>
-          {(
-            [
-              ['manual', 'Manual'],
-              ['auto', 'Auto'],
-            ] as const
-          ).map(([value, label]) => {
-            const active = settings.sessionMode === value;
-            return (
-              <Pressable
-                key={value}
-                onPress={() =>
-                  updateSettings(
-                    value === 'auto'
-                      ? { sessionMode: value, showIntro: false }
-                      : { sessionMode: value },
-                  )
-                }
-                style={[styles.modePill, active && styles.modePillActive]}
-              >
-                <Text selectable={false} style={[styles.modeText, active && styles.modeTextActive]}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
+        <View style={styles.row}>
+          <Text selectable={false}>Auto mode</Text>
+          <Switch
+            value={settings.sessionMode === 'auto'}
+            onValueChange={(v) =>
+              updateSettings({
+                sessionMode: v ? 'auto' : 'manual',
+                showIntro: v ? false : settings.showIntro,
+              })
+            }
+          />
         </View>
         <Text selectable={false} style={styles.modeHint}>
-          Auto starts a session when the app opens and saves continuously.
+          Auto mode starts when the app opens and saves as you go. Example: open the app, do
+          push-ups, close it — everything is saved.
         </Text>
         <View style={styles.row}>
           <Text selectable={false}>Show intro on startup</Text>
@@ -58,7 +44,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text selectable={false} style={styles.section}>
-          Gameplay
+          Hit Timing
         </Text>
         <Text selectable={false}>Hit cooldown: {settings.hitCooldownMs}ms</Text>
         <Slider
@@ -139,19 +125,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0EB' },
   content: { padding: 24, paddingTop: 8 },
   section: { fontSize: 16, fontWeight: '500', marginTop: 24, marginBottom: 8, color: '#2D3748' },
-  modeRow: { flexDirection: 'row', gap: 8, marginBottom: 6 },
-  modePill: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.9)',
-  },
-  modePillActive: { backgroundColor: '#1A202C', borderColor: '#1A202C' },
-  modeText: { fontSize: 13, color: '#1A202C', fontWeight: '500' },
-  modeTextActive: { color: '#fff' },
-  modeHint: { fontSize: 12, color: 'rgba(0,0,0,0.55)' },
+  modeHint: { fontSize: 12, color: 'rgba(0,0,0,0.55)', marginBottom: 8 },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
