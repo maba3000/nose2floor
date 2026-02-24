@@ -1,20 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  Pressable,
-  Alert,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useHistoryStore } from '@/store/historyStore';
 import { DEFAULT_SETTINGS } from '@/domain/entities';
-import { exportData, importData } from '@/persistence/storage';
+import { exportData, importData, type ExportData } from '@/persistence/storage';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { AppDialog } from '@/components/AppDialog';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
@@ -29,6 +21,10 @@ export default function DataScreen() {
   const [importJson, setImportJson] = useState('');
   const [exportStatus, setExportStatus] = useState<string | null>(null);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [confirmImport, setConfirmImport] = useState<{
+    mode: 'append' | 'overwrite';
+    data: ExportData;
+  } | null>(null);
   const exportTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -76,51 +72,33 @@ export default function DataScreen() {
     return data;
   }
 
+  const commitImport = (mode: 'append' | 'overwrite', data: ExportData) => {
+    const nextSettings = { ...DEFAULT_SETTINGS, ...data.settings };
+    if (mode === 'overwrite') {
+      updateSettings(nextSettings);
+      replaceHistory(data.history);
+      setExportJson(exportData(nextSettings, data.history));
+      setImportStatus('Import successful (overwritten).');
+    } else {
+      const merged = [...history, ...data.history]
+        .reduce((acc, session) => {
+          if (!acc.has(session.id)) acc.set(session.id, session);
+          return acc;
+        }, new Map<string, (typeof history)[number]>())
+        .values();
+      const nextHistory = Array.from(merged).sort((a, b) => b.startedAt - a.startedAt);
+      replaceHistory(nextHistory);
+      setExportJson(exportData(settings, nextHistory));
+      setImportStatus('Import successful (appended).');
+    }
+    setImportJson('');
+    setConfirmImport(null);
+  };
+
   const applyImport = (mode: 'append' | 'overwrite') => {
     const data = parseImport();
     if (!data) return;
-
-    const commitImport = () => {
-      const nextSettings = { ...DEFAULT_SETTINGS, ...data.settings };
-      if (mode === 'overwrite') {
-        updateSettings(nextSettings);
-        replaceHistory(data.history);
-        setExportJson(exportData(nextSettings, data.history));
-        setImportStatus('Import successful (overwritten).');
-      } else {
-        const merged = [...history, ...data.history]
-          .reduce((acc, session) => {
-            if (!acc.has(session.id)) acc.set(session.id, session);
-            return acc;
-          }, new Map<string, typeof history[number]>())
-          .values();
-        const nextHistory = Array.from(merged).sort((a, b) => b.startedAt - a.startedAt);
-        replaceHistory(nextHistory);
-        setExportJson(exportData(settings, nextHistory));
-        setImportStatus('Import successful (appended).');
-      }
-      setImportJson('');
-    };
-
-    const title = mode === 'overwrite' ? 'Overwrite data?' : 'Append data?';
-    const message =
-      mode === 'overwrite'
-        ? 'This will replace your current settings and history.'
-        : 'This will keep your current settings and add history from the import.';
-    if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      const ok = window.confirm(`${title}\n\n${message}`);
-      if (ok) commitImport();
-      return;
-    }
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: mode === 'overwrite' ? 'Overwrite' : 'Append',
-        style: mode === 'overwrite' ? 'destructive' : 'default',
-        onPress: commitImport,
-      },
-    ]);
+    setConfirmImport({ mode, data });
   };
 
   return (
@@ -179,7 +157,10 @@ export default function DataScreen() {
             Append import
           </Text>
         </Pressable>
-        <Pressable style={[styles.button, styles.buttonDanger]} onPress={() => applyImport('overwrite')}>
+        <Pressable
+          style={[styles.button, styles.buttonDanger]}
+          onPress={() => applyImport('overwrite')}
+        >
           <Text selectable={false} style={[styles.buttonLabel, styles.buttonDangerLabel]}>
             Overwrite import
           </Text>
@@ -190,6 +171,24 @@ export default function DataScreen() {
           </Text>
         )}
       </ScrollView>
+      <AppDialog
+        visible={confirmImport !== null}
+        title={confirmImport?.mode === 'overwrite' ? 'Overwrite data?' : 'Append data?'}
+        message={
+          confirmImport?.mode === 'overwrite'
+            ? 'This will replace your current settings and history.'
+            : 'This will keep your current settings and add history from the import.'
+        }
+        onRequestClose={() => setConfirmImport(null)}
+        actions={[
+          { label: 'Cancel', onPress: () => setConfirmImport(null) },
+          {
+            label: confirmImport?.mode === 'overwrite' ? 'Overwrite' : 'Append',
+            tone: confirmImport?.mode === 'overwrite' ? 'danger' : 'default',
+            onPress: () => confirmImport && commitImport(confirmImport.mode, confirmImport.data),
+          },
+        ]}
+      />
     </View>
   );
 }

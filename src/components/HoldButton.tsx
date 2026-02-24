@@ -1,5 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Text, StyleSheet, Pressable, Platform, View, ViewStyle } from 'react-native';
+import {
+  Text,
+  StyleSheet,
+  Pressable,
+  Platform,
+  View,
+  ViewStyle,
+  GestureResponderEvent,
+} from 'react-native';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -188,12 +196,14 @@ function WebHoldButton({
     }
   };
 
+  const stopEvent = (e: GestureResponderEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <Pressable
       onPressIn={(e) => {
-        // Prevent parent press handlers (web bubbling).
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (e as any).stopPropagation?.();
+        stopEvent(e);
         setPressed(true);
         setProgress(0);
         startRef.current = performance.now();
@@ -202,8 +212,7 @@ function WebHoldButton({
         timeoutRef.current = setTimeout(onHold, holdDurationMs);
       }}
       onPressOut={(e) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (e as any).stopPropagation?.();
+        stopEvent(e);
         setPressed(false);
         setProgress(0);
         cancelRaf();
@@ -211,14 +220,11 @@ function WebHoldButton({
         timeoutRef.current = null;
       }}
       onPress={(e) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (e as any).stopPropagation?.();
+        stopEvent(e);
       }}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      {...({ onContextMenu: (e: any) => e.preventDefault() } as any)}
       style={[styles.button, baseStyle]}
     >
       <View pointerEvents="none" style={[styles.progress, progressStyle]} />

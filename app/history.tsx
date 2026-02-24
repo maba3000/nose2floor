@@ -1,18 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Pressable,
-  Alert,
-  Platform,
-  TextInput,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, Pressable, Platform, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
 import { ScreenHeader } from '@/components/ScreenHeader';
+import { AppDialog } from '@/components/AppDialog';
 import type { WorkoutSession } from '@/domain/entities';
+import { applyHitsCorrection } from '@/domain/sessionCorrections';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
@@ -28,6 +21,8 @@ export default function HistoryScreen() {
   const [undoSession, setUndoSession] = useState<WorkoutSession | null>(null);
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [draftHits, setDraftHits] = useState('');
+  const [showClearDialog, setShowClearDialog] = useState(false);
+  const [invalidHitsMessage, setInvalidHitsMessage] = useState<string | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(
@@ -61,31 +56,15 @@ export default function HistoryScreen() {
     undoTimerRef.current = setTimeout(() => setUndoSession(null), 4000);
   };
 
+  const clearHistory = () => {
+    replaceHistory([]);
+    setEditingSessionId(null);
+    setDraftHits('');
+    setShowClearDialog(false);
+  };
+
   const confirmClearHistory = () => {
-    const title = 'Clear all history?';
-    const message = 'This cannot be undone.';
-    if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      const ok = window.confirm(`${title}\n\n${message}`);
-      if (ok) {
-        replaceHistory([]);
-        setEditingSessionId(null);
-        setDraftHits('');
-      }
-      return;
-    }
-    Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear',
-        style: 'destructive',
-        onPress: () => {
-          replaceHistory([]);
-          setEditingSessionId(null);
-          setDraftHits('');
-        },
-      },
-    ]);
+    setShowClearDialog(true);
   };
 
   const handleUndo = () => {
@@ -105,42 +84,21 @@ export default function HistoryScreen() {
   };
 
   const showInvalidHitsError = () => {
-    const title = 'Invalid hits value';
-    const message = 'Enter a whole number of hits (0 or more).';
-    if (Platform.OS === 'web') {
-      // eslint-disable-next-line no-alert
-      window.alert(`${title}\n\n${message}`);
-      return;
-    }
-    Alert.alert(title, message);
+    setInvalidHitsMessage('Enter a whole number of hits from 0 up to recorded markers.');
   };
 
   const saveEdit = (session: WorkoutSession) => {
-    const trimmed = draftHits.trim();
-    if (!/^\d+$/.test(trimmed)) {
+    const result = applyHitsCorrection(session, draftHits);
+    if (!result.ok) {
+      if (result.error === 'exceeds_recorded_hits') {
+        setInvalidHitsMessage(`Cannot set hits above recorded markers (${session.hits.length}).`);
+        return;
+      }
       showInvalidHitsError();
       return;
     }
 
-    const nextReps = Number(trimmed);
-    if (!Number.isSafeInteger(nextReps) || nextReps < 0) {
-      showInvalidHitsError();
-      return;
-    }
-
-    let nextHits = session.hits;
-    let nextTotalScore = session.totalScore;
-    if (nextReps <= session.hits.length) {
-      nextHits = session.hits.slice(0, nextReps);
-      nextTotalScore = nextHits.reduce((sum, hit) => sum + hit.score, 0);
-    }
-
-    upsertSession({
-      ...session,
-      reps: nextReps,
-      totalScore: nextTotalScore,
-      hits: nextHits,
-    });
+    upsertSession(result.session);
     setEditingSessionId(null);
     setDraftHits('');
   };
@@ -178,16 +136,17 @@ export default function HistoryScreen() {
               </View>
 
               <View style={styles.rowActions}>
-                <Pressable onPress={() => router.push(`/history/${item.id}`)} style={styles.previewButton}>
+                <Pressable
+                  onPress={() => router.push(`/history/${item.id}`)}
+                  style={styles.previewButton}
+                >
                   <Text selectable={false} style={styles.previewLabel}>
                     Preview
                   </Text>
                 </Pressable>
 
                 <Pressable
-                  onPress={() =>
-                    editingSessionId === item.id ? cancelEdit() : beginEdit(item)
-                  }
+                  onPress={() => (editingSessionId === item.id ? cancelEdit() : beginEdit(item))}
                   style={styles.editButton}
                 >
                   <Text selectable={false} style={styles.editLabel}>
@@ -217,7 +176,7 @@ export default function HistoryScreen() {
                   placeholderTextColor={theme.textFaint}
                 />
                 <Text selectable={false} style={styles.editHint}>
-                  Lower values trim extra hit markers and recalculate points.
+                  Max editable hits: {item.hits.length}. Points recalculate from markers.
                 </Text>
                 <View style={styles.editPanelActions}>
                   <Pressable style={styles.cancelButton} onPress={cancelEdit}>
@@ -248,6 +207,23 @@ export default function HistoryScreen() {
           </Pressable>
         </View>
       )}
+      <AppDialog
+        visible={showClearDialog}
+        title="Clear all history?"
+        message="This cannot be undone."
+        onRequestClose={() => setShowClearDialog(false)}
+        actions={[
+          { label: 'Cancel', onPress: () => setShowClearDialog(false) },
+          { label: 'Clear', tone: 'danger', onPress: clearHistory },
+        ]}
+      />
+      <AppDialog
+        visible={invalidHitsMessage !== null}
+        title="Invalid hits value"
+        message={invalidHitsMessage ?? ''}
+        onRequestClose={() => setInvalidHitsMessage(null)}
+        actions={[{ label: 'OK', onPress: () => setInvalidHitsMessage(null) }]}
+      />
     </View>
   );
 }

@@ -84,7 +84,10 @@ export default function SettingsScreen() {
                     onPress={() => updateSettings({ themeMode: value as ThemeMode })}
                     style={[styles.pill, active && styles.pillActive]}
                   >
-                    <Text selectable={false} style={[styles.pillText, active && styles.pillTextActive]}>
+                    <Text
+                      selectable={false}
+                      style={[styles.pillText, active && styles.pillTextActive]}
+                    >
                       {label}
                     </Text>
                   </Pressable>
@@ -285,7 +288,12 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       gap: 8,
     },
-    innerRowBorder: { borderTopWidth: 1, borderTopColor: theme.border, marginTop: 8, paddingTop: 12 },
+    innerRowBorder: {
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
+      marginTop: 8,
+      paddingTop: 12,
+    },
     rowLabel: { fontSize: 14, color: theme.text },
     helpText: { fontSize: 12, color: theme.textSubtle, marginTop: 4 },
     appearanceRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },

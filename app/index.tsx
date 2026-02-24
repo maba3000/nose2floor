@@ -13,6 +13,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useTimer } from '@/hooks/useTimer';
 import { useDebounce } from '@/hooks/useDebounce';
 import { computeDistance, computeScore } from '@/domain/scoring';
+import { buildAutoSessionSnapshot } from '@/domain/autoSession';
 import { BullseyeCanvas } from '@/components/BullseyeCanvas';
 import { HoldButton } from '@/components/HoldButton';
 import { HitMarkerOverlay } from '@/components/HitMarkerOverlay';
@@ -114,48 +115,8 @@ export default function HomeScreen() {
 
       recordHit(hit, tap, isActive);
       triggerHitHaptic();
-
-      if (settings.sessionMode === 'auto' && isActive) {
-        if (!sessionIdRef.current) {
-          sessionIdRef.current = uuid();
-          sessionStartTime.current = Date.now();
-        }
-        const nextReps = reps + 1;
-        const nextTotal = totalScore + hit.score;
-        const nextHits = [...hits, hit];
-        upsertSession({
-          id: sessionIdRef.current,
-          startedAt: sessionStartTime.current || now,
-          durationSeconds: elapsedSeconds,
-          reps: nextReps,
-          totalScore: nextTotal,
-          hits: nextHits,
-          bullseyeScale: settings.bullseyeScale,
-        });
-        saveAutoSession({
-          id: sessionIdRef.current,
-          startedAt: sessionStartTime.current || now,
-          durationSeconds: elapsedSeconds,
-          reps: nextReps,
-          totalScore: nextTotal,
-          hits: nextHits,
-          bullseyeScale: settings.bullseyeScale,
-        });
-      }
     },
-    [
-      checkDebounce,
-      isActive,
-      recordHit,
-      triggerHitHaptic,
-      settings.sessionMode,
-      settings.bullseyeScale,
-      elapsedSeconds,
-      reps,
-      totalScore,
-      hits,
-      upsertSession,
-    ],
+    [checkDebounce, isActive, recordHit, triggerHitHaptic],
   );
 
   const handlePress = useCallback(
@@ -326,9 +287,14 @@ export default function HomeScreen() {
 
   useEffect(() => {
     if (settings.sessionMode !== 'auto') return;
-    if (!isActive || !sessionIdRef.current) return;
-    if (reps === 0) return;
-    upsertSession({
+    if (!isActive) return;
+    if (!sessionIdRef.current) {
+      sessionIdRef.current = uuid();
+      if (!sessionStartTime.current) sessionStartTime.current = Date.now();
+    }
+    const snapshot = buildAutoSessionSnapshot({
+      sessionMode: settings.sessionMode,
+      isActive,
       id: sessionIdRef.current,
       startedAt: sessionStartTime.current || Date.now(),
       durationSeconds: elapsedSeconds,
@@ -337,15 +303,9 @@ export default function HomeScreen() {
       hits,
       bullseyeScale: settings.bullseyeScale,
     });
-    saveAutoSession({
-      id: sessionIdRef.current,
-      startedAt: sessionStartTime.current || Date.now(),
-      durationSeconds: elapsedSeconds,
-      reps,
-      totalScore,
-      hits,
-      bullseyeScale: settings.bullseyeScale,
-    });
+    if (!snapshot) return;
+    upsertSession(snapshot);
+    saveAutoSession(snapshot);
   }, [
     settings.sessionMode,
     isActive,
@@ -399,7 +359,7 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
-      <Pressable onPress={handlePress} style={styles.tapLayer} pointerEvents="box-only" />
+      <Pressable onPressIn={handlePress} style={styles.tapLayer} pointerEvents="box-only" />
       {settings.showBullseye && canvasSize.width > 0 && (
         <View style={[StyleSheet.absoluteFill, styles.canvasWrapper]} pointerEvents="none">
           <BullseyeCanvas

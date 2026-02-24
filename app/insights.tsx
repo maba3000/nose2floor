@@ -10,6 +10,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { Ionicons } from '@expo/vector-icons';
 import { useHistoryStore } from '@/store/historyStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { buildInsights, filterByRange, getRangeMs, type RangeKey } from '@/analytics/insights';
@@ -106,7 +107,8 @@ export default function InsightsScreen() {
     [filtered],
   );
   const missingHitMapCount = useMemo(
-    () => filtered.reduce((sum, session) => sum + Math.max(0, session.reps - session.hits.length), 0),
+    () =>
+      filtered.reduce((sum, session) => sum + Math.max(0, session.reps - session.hits.length), 0),
     [filtered],
   );
 
@@ -124,9 +126,11 @@ export default function InsightsScreen() {
       hitSlop={10}
       style={[styles.gearBtn, showSettings && styles.gearBtnActive]}
     >
-      <Text selectable={false} style={[styles.gearText, showSettings && styles.gearTextActive]}>
-        ⚙
-      </Text>
+      <Ionicons
+        name="settings-outline"
+        size={19}
+        color={showSettings ? theme.background : theme.textMuted}
+      />
     </Pressable>
   );
 
@@ -374,16 +378,6 @@ const createStyles = (theme: Theme) =>
     },
     gearBtnActive: {
       backgroundColor: theme.text,
-    },
-    gearText: {
-      fontSize: 30,
-      lineHeight: 30,
-      textAlign: 'center',
-      includeFontPadding: false,
-      color: theme.textMuted,
-    },
-    gearTextActive: {
-      color: theme.background,
     },
 
     // Settings panel

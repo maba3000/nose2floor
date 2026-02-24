@@ -7,7 +7,7 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
 const SOURCE_URL = 'https://github.com/maba3000/nose2floor';
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 type NavItem = {
   label: string;
@@ -51,12 +51,20 @@ export default function MoreScreen() {
   ];
 
   const dataAndPrivacyItems: NavItem[] = [
-    { label: 'Backup & Restore', hint: 'Export and import your data', onPress: () => router.push('/data') },
+    {
+      label: 'Backup & Restore',
+      hint: 'Export and import your data',
+      onPress: () => router.push('/data'),
+    },
     { label: 'Privacy', hint: 'How your data is handled', onPress: () => router.push('/privacy') },
   ];
 
   const aboutItems: NavItem[] = [
-    { label: 'Licenses', hint: 'Open-source attributions', onPress: () => router.push('/licenses') },
+    {
+      label: 'Licenses',
+      hint: 'Open-source attributions',
+      onPress: () => router.push('/licenses'),
+    },
     {
       label: 'Support & Source Code',
       hint: copied ? 'Copied to clipboard' : SOURCE_URL,
