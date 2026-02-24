@@ -35,6 +35,7 @@ export default function Root({ children }: PropsWithChildren) {
           #root {
             height: 100%;
             overflow: hidden;
+            overscroll-behavior: none;
           }
           body {
             position: fixed;
