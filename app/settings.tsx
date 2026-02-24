@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
+
+// levels 1–4: pale-yellow/white → yellow → orange → dark red
 import { View, Text, Switch, StyleSheet, ScrollView, Pressable } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { AppSettings } from '@/domain/entities';
+import type { CornerWidget } from '@/domain/entities';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme, ThemeMode } from '@/theme';
@@ -109,22 +111,69 @@ export default function SettingsScreen() {
         <Text selectable={false} style={styles.section}>
           Display
         </Text>
+        <View style={styles.row}>
+          <Text selectable={false} style={styles.rowLabel}>
+            Show bull&apos;s-eye
+          </Text>
+          <Switch
+            value={settings.showBullseye}
+            onValueChange={(v) => updateSettings({ showBullseye: v })}
+          />
+        </View>
+
+        <Text selectable={false} style={styles.section}>
+          Goals
+        </Text>
+        <Text selectable={false} style={styles.rowLabel}>
+          Daily goal: {settings.dailyGoal} reps
+        </Text>
+        <Slider
+          minimumValue={1}
+          maximumValue={200}
+          step={1}
+          value={settings.dailyGoal}
+          onValueChange={(v) => updateSettings({ dailyGoal: v })}
+        />
+        <Text selectable={false} style={styles.helpText}>
+          Assign the "Goal" widget to a corner to see how many reps remain today.
+        </Text>
+
+        <Text selectable={false} style={styles.section}>
+          Corners
+        </Text>
         {(
           [
-            ['showHitCount', 'Show hit count'],
-            ['showPoints', 'Show points'],
-            ['showBullseye', "Show bull's-eye"],
-            ['showTimer', 'Show timer'],
+            ['topLeft', 'Top-left'],
+            ['topRight', 'Top-right'],
+            ['bottomLeft', 'Bottom-left'],
           ] as const
-        ).map(([key, label]) => (
-          <View key={key} style={styles.row}>
-            <Text selectable={false} style={styles.rowLabel}>
+        ).map(([corner, label]) => (
+          <View key={corner} style={styles.cornerRow}>
+            <Text selectable={false} style={[styles.rowLabel, styles.cornerLabel]}>
               {label}
             </Text>
-            <Switch
-              value={settings[key]}
-              onValueChange={(v) => updateSettings({ [key]: v } as Partial<AppSettings>)}
-            />
+            <View style={styles.cornerPills}>
+              {(['none', 'hits', 'points', 'timer', 'goal'] as CornerWidget[]).map((widget) => {
+                const active = settings.corners[corner] === widget;
+                const widgetLabel = widget.charAt(0).toUpperCase() + widget.slice(1);
+                return (
+                  <Pressable
+                    key={widget}
+                    onPress={() =>
+                      updateSettings({ corners: { ...settings.corners, [corner]: widget } })
+                    }
+                    style={[styles.cornerPill, active && styles.cornerPillActive]}
+                  >
+                    <Text
+                      selectable={false}
+                      style={[styles.cornerPillText, active && styles.cornerPillTextActive]}
+                    >
+                      {widgetLabel}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         ))}
 
@@ -207,4 +256,18 @@ const createStyles = (theme: Theme) =>
     appearancePillActive: { backgroundColor: theme.text, borderColor: theme.text },
     appearanceText: { fontSize: 13, color: theme.text, fontWeight: '500' },
     appearanceTextActive: { color: theme.card },
+    cornerRow: { marginVertical: 8, gap: 6 },
+    cornerLabel: { marginBottom: 2 },
+    cornerPills: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+    cornerPill: {
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: theme.borderStrong,
+      backgroundColor: theme.cardSoft,
+    },
+    cornerPillActive: { backgroundColor: theme.text, borderColor: theme.text },
+    cornerPillText: { fontSize: 13, color: theme.text, fontWeight: '500' },
+    cornerPillTextActive: { color: theme.card },
   });

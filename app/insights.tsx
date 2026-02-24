@@ -1,22 +1,243 @@
-import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  TextInput,
+  Switch,
+  useWindowDimensions,
+} from 'react-native';
+import Slider from '@react-native-community/slider';
 import { useHistoryStore } from '@/store/historyStore';
-import { buildInsights } from '@/analytics/insights';
+import { useSettingsStore } from '@/store/settingsStore';
+import { buildInsights, filterByRange, getRangeMs, type RangeKey } from '@/analytics/insights';
+import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
+const RANGE_PILLS: { key: RangeKey; label: string }[] = [
+  { key: 'month', label: 'Month' },
+  { key: 'year', label: 'Year' },
+  { key: 'custom', label: 'Custom' },
+];
+
+const HEATMAP_LIGHT_COLORS = ['#FFF9C4', '#FFD740', '#FF6D00', '#C62828'];
+const HEATMAP_DARK_COLORS = ['#4A3728', '#F9A825', '#BF360C', '#7F0000'];
+
+function toDateString(ms: number): string {
+  const d = new Date(ms);
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function parseLocalDate(s: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const parts = s.split('-');
+  const y = Number(parts[0]);
+  const m = Number(parts[1]);
+  const d = Number(parts[2]);
+  if (m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const date = new Date(y, m - 1, d);
+  date.setHours(0, 0, 0, 0);
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null;
+  return date.getTime();
+}
+
 export default function InsightsScreen() {
   const history = useHistoryStore((s) => s.history);
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const { width: windowWidth } = useWindowDimensions();
+  const heatmapAvailableWidth = windowWidth - 92;
 
-  const stats = useMemo(() => buildInsights(history), [history]);
+  const [range, setRange] = useState<RangeKey>('month');
+  const [showSettings, setShowSettings] = useState(false);
+  const [customFrom, setCustomFrom] = useState(() => {
+    if (history.length === 0) return toDateString(Date.now());
+    const oldestMs = history.reduce((min, s) => Math.min(min, s.startedAt), Infinity);
+    return toDateString(oldestMs);
+  });
+  const [customTo, setCustomTo] = useState(() => toDateString(Date.now()));
+
+  const [startMs, endMs] = useMemo(() => {
+    if (range === 'custom') {
+      const fromMs = parseLocalDate(customFrom);
+      const toMs = parseLocalDate(customTo);
+      if (fromMs !== null && toMs !== null) {
+        const toEndMs = toMs + 23 * 3600 * 1000 + 59 * 60 * 1000 + 59 * 1000 + 999;
+        return [fromMs, toEndMs] as [number, number];
+      }
+      if (history.length === 0) return getRangeMs('all');
+      const minStart = history.reduce((min, s) => Math.min(min, s.startedAt), Infinity);
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+      return [minStart, endOfToday.getTime()] as [number, number];
+    }
+    return getRangeMs(range);
+  }, [range, customFrom, customTo, history]);
+
+  const filtered = useMemo(() => filterByRange(history, startMs, endMs), [history, startMs, endMs]);
+
+  const stats = useMemo(() => buildInsights(filtered), [filtered]);
+
+  const swatchColors = theme.isDark ? HEATMAP_DARK_COLORS : HEATMAP_LIGHT_COLORS;
+
+  const gearButton = (
+    <Pressable
+      onPress={() => setShowSettings((v) => !v)}
+      hitSlop={10}
+      style={[styles.gearBtn, showSettings && styles.gearBtnActive]}
+    >
+      <Text selectable={false} style={[styles.gearText, showSettings && styles.gearTextActive]}>
+        ⚙
+      </Text>
+    </Pressable>
+  );
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Insights" />
+      <ScreenHeader title="Insights" rightAction={gearButton} />
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Inline settings panel */}
+        {showSettings && (
+          <View style={styles.settingsPanel}>
+            <Text selectable={false} style={styles.panelLabel}>
+              Daily goal
+            </Text>
+            <Text selectable={false} style={styles.panelValue}>
+              {settings.dailyGoal} hits
+            </Text>
+            <Slider
+              minimumValue={1}
+              maximumValue={200}
+              step={1}
+              value={settings.dailyGoal}
+              onValueChange={(v) => updateSettings({ dailyGoal: v })}
+            />
+
+            <Text selectable={false} style={[styles.panelLabel, { marginTop: 12 }]}>
+              Heatmap colors
+            </Text>
+            {([0, 1, 2, 3] as const).map((i) => (
+              <React.Fragment key={i}>
+                <View style={styles.thresholdRow}>
+                  <View style={[styles.swatch, { backgroundColor: swatchColors[i] }]} />
+                  <Text selectable={false} style={styles.panelValue}>
+                    Level {i + 1}: {settings.heatmapThresholds[i]}+ hits
+                  </Text>
+                </View>
+                <Slider
+                  minimumValue={1}
+                  maximumValue={200}
+                  step={1}
+                  value={settings.heatmapThresholds[i]}
+                  onValueChange={(v) => {
+                    const next = [...settings.heatmapThresholds] as [
+                      number,
+                      number,
+                      number,
+                      number,
+                    ];
+                    next[i] = v;
+                    updateSettings({ heatmapThresholds: next });
+                  }}
+                />
+              </React.Fragment>
+            ))}
+
+            <Text selectable={false} style={[styles.panelLabel, { marginTop: 12 }]}>
+              Tile display
+            </Text>
+            <View style={styles.switchRow}>
+              <Text selectable={false} style={styles.panelValue}>
+                Show goal star
+              </Text>
+              <Switch
+                value={settings.heatmapShowGoalStar}
+                onValueChange={(v) => updateSettings({ heatmapShowGoalStar: v })}
+              />
+            </View>
+            <View style={styles.switchRow}>
+              <Text selectable={false} style={styles.panelValue}>
+                Show hit count
+              </Text>
+              <Switch
+                value={settings.heatmapShowHitCount}
+                onValueChange={(v) => updateSettings({ heatmapShowHitCount: v })}
+              />
+            </View>
+          </View>
+        )}
+
+        {/* Range pills */}
+        <View style={styles.pillRow}>
+          {RANGE_PILLS.map(({ key, label }) => {
+            const active = range === key;
+            return (
+              <Pressable
+                key={key}
+                onPress={() => setRange(key)}
+                style={[styles.pill, active && styles.pillActive]}
+              >
+                <Text selectable={false} style={[styles.pillText, active && styles.pillTextActive]}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {/* Custom date inputs */}
+        {range === 'custom' && (
+          <View style={styles.customRow}>
+            <TextInput
+              style={styles.dateInput}
+              placeholder="From YYYY-MM-DD"
+              placeholderTextColor={theme.textFaint}
+              value={customFrom}
+              onChangeText={setCustomFrom}
+              autoCorrect={false}
+              autoCapitalize="none"
+              keyboardType="numbers-and-punctuation"
+            />
+            <TextInput
+              style={styles.dateInput}
+              placeholder="To YYYY-MM-DD"
+              placeholderTextColor={theme.textFaint}
+              value={customTo}
+              onChangeText={setCustomTo}
+              autoCorrect={false}
+              autoCapitalize="none"
+              keyboardType="numbers-and-punctuation"
+            />
+          </View>
+        )}
+
+        {/* Activity heatmap */}
+        <Text style={styles.sectionLabel}>Activity</Text>
+        <View style={styles.heatmapCard}>
+          <ActivityHeatmap
+            sessions={filtered}
+            startMs={startMs}
+            endMs={endMs}
+            availableWidth={heatmapAvailableWidth}
+            dailyGoal={settings.dailyGoal}
+            heatmapThresholds={settings.heatmapThresholds}
+            showGoalStar={settings.heatmapShowGoalStar}
+            showHitCount={settings.heatmapShowHitCount}
+          />
+        </View>
+
+        {/* Stats grid */}
+        <Text style={styles.sectionLabel}>Stats</Text>
         <View style={styles.grid}>
           {stats.map((stat) => (
             <View key={stat.label} style={styles.card}>
@@ -37,7 +258,132 @@ export default function InsightsScreen() {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.background },
-    content: { padding: 24, paddingTop: 8 },
+    content: { padding: 24, paddingTop: 8, paddingBottom: 40 },
+
+    // Gear button
+    gearBtn: {
+      width: 36,
+      height: 36,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 18,
+    },
+    gearBtnActive: {
+      backgroundColor: theme.text,
+    },
+    gearText: {
+      fontSize: 30,
+      lineHeight: 30,
+      textAlign: 'center',
+      includeFontPadding: false,
+      color: theme.textMuted,
+    },
+    gearTextActive: {
+      color: theme.background,
+    },
+
+    // Settings panel
+    settingsPanel: {
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+      marginBottom: 16,
+    },
+    panelLabel: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: theme.textSubtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.7,
+      marginBottom: 2,
+    },
+    panelValue: {
+      fontSize: 13,
+      color: theme.text,
+    },
+    thresholdRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 6,
+    },
+    swatch: { width: 12, height: 12, borderRadius: 3 },
+    switchRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+
+    // Pills
+    pillRow: {
+      flexDirection: 'row',
+      gap: 8,
+      marginBottom: 16,
+      flexWrap: 'wrap',
+    },
+    pill: {
+      paddingVertical: 6,
+      paddingHorizontal: 14,
+      borderRadius: 20,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+    },
+    pillActive: {
+      backgroundColor: theme.text,
+      borderColor: theme.text,
+    },
+    pillText: {
+      fontSize: 13,
+      fontWeight: '500',
+      color: theme.textMuted,
+    },
+    pillTextActive: {
+      color: theme.background,
+    },
+
+    // Custom date inputs
+    customRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: 16,
+    },
+    dateInput: {
+      flex: 1,
+      height: 38,
+      paddingHorizontal: 12,
+      borderRadius: 10,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+      color: theme.text,
+      fontSize: 13,
+    },
+
+    // Section labels
+    sectionLabel: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: theme.textSubtle,
+      textTransform: 'uppercase',
+      letterSpacing: 0.8,
+      marginBottom: 10,
+    },
+
+    // Heatmap card
+    heatmapCard: {
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+      marginBottom: 20,
+    },
+
+    // Stats grid
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',

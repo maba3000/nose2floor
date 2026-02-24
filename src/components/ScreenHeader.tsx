@@ -7,9 +7,10 @@ import type { Theme } from '@/theme';
 
 interface ScreenHeaderProps {
   title: string;
+  rightAction?: React.ReactNode;
 }
 
-export function ScreenHeader({ title }: ScreenHeaderProps) {
+export function ScreenHeader({ title, rightAction }: ScreenHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -31,6 +32,7 @@ export function ScreenHeader({ title }: ScreenHeaderProps) {
       <Text selectable={false} style={styles.title}>
         {title}
       </Text>
+      {rightAction}
     </View>
   );
 }
@@ -57,6 +59,7 @@ const createStyles = (theme: Theme) =>
       lineHeight: 24,
     },
     title: {
+      flex: 1,
       fontSize: 24,
       fontWeight: '600',
       color: theme.text,

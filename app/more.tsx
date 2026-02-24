@@ -124,7 +124,7 @@ export default function MoreScreen() {
         <Pressable style={styles.navRow} onPress={handleCopySource}>
           <View style={styles.navText}>
             <Text selectable={false} style={styles.navLabel}>
-              Source code
+              Source Code / Feedback / Support
             </Text>
             <Text selectable={false} style={styles.navHint}>
               {copied ? 'Copied to clipboard' : SOURCE_URL}

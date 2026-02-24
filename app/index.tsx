@@ -17,7 +17,7 @@ import { BullseyeCanvas } from '@/components/BullseyeCanvas';
 import { HoldButton } from '@/components/HoldButton';
 import { HitMarkerOverlay } from '@/components/HitMarkerOverlay';
 import { CornerBadge } from '@/components/CornerBadge';
-import type { Hit } from '@/domain/entities';
+import type { Hit, CornerWidget } from '@/domain/entities';
 import { clearAutoSession, loadAutoSession, saveAutoSession } from '@/persistence/storage';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
@@ -39,6 +39,7 @@ export default function HomeScreen() {
   const reset = useSessionStore((s) => s.reset);
   const lastTap = useSessionStore((s) => s.lastTap);
 
+  const history = useHistoryStore((s) => s.history);
   const addSession = useHistoryStore((s) => s.addSession);
   const upsertSession = useHistoryStore((s) => s.upsertSession);
   const settings = useSettingsStore((s) => s.settings);
@@ -233,6 +234,51 @@ export default function HomeScreen() {
       .toString()
       .padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
+  const remainingGoal = useMemo(() => {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const start = todayStart.getTime();
+    const historyRepsToday = history
+      .filter((s) => s.startedAt >= start && s.id !== sessionIdRef.current)
+      .reduce((acc, s) => acc + s.reps, 0);
+    return settings.dailyGoal - historyRepsToday - reps;
+  }, [history, settings.dailyGoal, reps]);
+
+  const renderCornerWidget = useCallback(
+    (widget: CornerWidget, align: 'flex-start' | 'flex-end') => {
+      switch (widget) {
+        case 'hits':
+          return <CornerBadge label={isActive ? 'HITS' : 'DEMO'} value={`${reps}`} align={align} />;
+        case 'points':
+          return <CornerBadge label="PTS" value={`${totalScore}`} align={align} />;
+        case 'timer':
+          return isActive ? (
+            <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} align={align} />
+          ) : null;
+        case 'goal':
+          return (
+            <CornerBadge
+              label="GOAL"
+              value={
+                remainingGoal > 0
+                  ? `${remainingGoal}`
+                  : isActive
+                    ? remainingGoal === 0
+                      ? 'Done'
+                      : `Done ${remainingGoal}`
+                    : 'Demo'
+              }
+              align={align}
+            />
+          );
+        case 'none':
+        default:
+          return null;
+      }
+    },
+    [isActive, reps, totalScore, elapsedSeconds, remainingGoal],
+  );
+
   const [markerVisible, setMarkerVisible] = useState(false);
   useEffect(() => {
     if (!settings.showHitMarkers || !lastTap) {
@@ -365,69 +411,45 @@ export default function HomeScreen() {
       )}
 
       {markerVisible && lastTap && (
-        <HitMarkerOverlay
-          x={lastTap.x}
-          y={lastTap.y}
-          score={lastTap.score}
-          showScore={settings.showPoints}
-        />
+        <HitMarkerOverlay x={lastTap.x} y={lastTap.y} score={lastTap.score} showScore={true} />
       )}
 
       <View pointerEvents="box-none" style={styles.overlayLayer}>
-        {isActive ? (
-          <>
-            {settings.showHitCount && (
-              <View style={styles.badgeTopLeft}>
-                <CornerBadge label="HITS" value={`${reps}`} />
-              </View>
-            )}
-            {settings.showPoints && (
-              <View style={styles.topRight}>
-                <CornerBadge label="PTS" value={`${totalScore}`} align="flex-end" />
-              </View>
-            )}
-            <View style={styles.bottomRow} pointerEvents="box-none">
-              {settings.showTimer ? (
-                <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} />
-              ) : (
-                <View pointerEvents="none" />
-              )}
-              <HoldButton
-                label="Hold to Stop"
-                color={theme.actionDanger}
-                onHold={handleStopSession}
-                accessibilityHint="Stops the current session."
-              />
-            </View>
-          </>
-        ) : (
-          <>
-            {settings.showHitCount && (
-              <View style={styles.badgeTopLeft}>
-                <CornerBadge label="DEMO" value={`${reps}`} />
-              </View>
-            )}
-            {settings.showPoints && (
-              <View style={styles.topRight}>
-                <CornerBadge label="PTS" value={`${totalScore}`} align="flex-end" />
-              </View>
-            )}
-            <View style={styles.bottomRow} pointerEvents="box-none">
-              <HoldButton
-                label="Hold for More"
-                color={theme.actionPrimary}
-                onHold={() => router.push('/more')}
-                accessibilityHint="Opens more options and screens."
-              />
-              <HoldButton
-                label="Hold to Start"
-                color={theme.actionPrimary}
-                onHold={handleStartSession}
-                accessibilityHint="Starts a manual session."
-              />
-            </View>
-          </>
-        )}
+        <View style={styles.cornerTopLeft} pointerEvents="none">
+          {renderCornerWidget(settings.corners.topLeft, 'flex-start')}
+        </View>
+        <View style={styles.cornerTopRight} pointerEvents="none">
+          {renderCornerWidget(settings.corners.topRight, 'flex-end')}
+        </View>
+        <View style={styles.cornerBottomLeft} pointerEvents={isActive ? 'none' : 'box-none'}>
+          {isActive ? (
+            renderCornerWidget(settings.corners.bottomLeft, 'flex-start')
+          ) : (
+            <HoldButton
+              label="Hold for More"
+              color={theme.actionPrimary}
+              onHold={() => router.push('/more')}
+              accessibilityHint="Opens more options and screens."
+            />
+          )}
+        </View>
+        <View style={styles.cornerBottomRight} pointerEvents="box-none">
+          {isActive ? (
+            <HoldButton
+              label="Hold to Stop"
+              color={theme.actionDanger}
+              onHold={handleStopSession}
+              accessibilityHint="Stops the current session."
+            />
+          ) : (
+            <HoldButton
+              label="Hold to Start"
+              color={theme.actionPrimary}
+              onHold={handleStartSession}
+              accessibilityHint="Starts a manual session."
+            />
+          )}
+        </View>
       </View>
     </View>
   );
@@ -439,17 +461,10 @@ const createStyles = (theme: Theme) =>
     tapLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
     overlayLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
     canvasWrapper: { alignItems: 'center', justifyContent: 'center' },
-    badgeTopLeft: { position: 'absolute', top: 16, left: 16 },
-    topRight: { position: 'absolute', top: 16, right: 16 },
-    bottomRow: {
-      position: 'absolute',
-      left: 16,
-      right: 16,
-      bottom: 16,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-end',
-    },
+    cornerTopLeft: { position: 'absolute', top: 16, left: 16 },
+    cornerTopRight: { position: 'absolute', top: 16, right: 16 },
+    cornerBottomLeft: { position: 'absolute', bottom: 16, left: 16 },
+    cornerBottomRight: { position: 'absolute', bottom: 16, right: 16 },
     introOverlay: {
       ...StyleSheet.absoluteFillObject,
       zIndex: 5,

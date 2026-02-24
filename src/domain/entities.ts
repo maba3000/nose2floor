@@ -16,16 +16,20 @@ export interface WorkoutSession {
   bullseyeScale: number;
 }
 
+export type CornerWidget = 'hits' | 'points' | 'timer' | 'goal' | 'none';
+
 export interface AppSettings {
   hitCooldownMs: number;
   sessionMode: 'manual' | 'auto';
   showIntro: boolean;
   hapticsEnabled: boolean;
   themeMode: 'light' | 'dark' | 'system';
-  showHitCount: boolean;
-  showPoints: boolean;
+  corners: { topLeft: CornerWidget; topRight: CornerWidget; bottomLeft: CornerWidget };
+  dailyGoal: number;
+  heatmapThresholds: [number, number, number, number];
+  heatmapShowGoalStar: boolean;
+  heatmapShowHitCount: boolean;
   showBullseye: boolean;
-  showTimer: boolean;
   bullseyeScale: number;
   showHitMarkers: boolean;
   hitMarkerAutoHideMs: number;
@@ -37,10 +41,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showIntro: true,
   hapticsEnabled: true,
   themeMode: 'system',
-  showHitCount: true,
-  showPoints: true,
+  corners: { topLeft: 'hits', topRight: 'points', bottomLeft: 'timer' },
+  dailyGoal: 100,
+  heatmapThresholds: [1, 25, 50, 75],
+  heatmapShowGoalStar: true,
+  heatmapShowHitCount: false,
   showBullseye: true,
-  showTimer: true,
   bullseyeScale: 1.0,
   showHitMarkers: true,
   hitMarkerAutoHideMs: 3000,
