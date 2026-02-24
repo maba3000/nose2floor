@@ -237,6 +237,24 @@ export default function SettingsScreen() {
 
             <View style={[styles.cardBlock, styles.cardBlockBorder]}>
               <Text selectable={false} style={styles.blockLabel}>
+                Diagnostics
+              </Text>
+              <View style={styles.row}>
+                <Text selectable={false} style={styles.rowLabel}>
+                  Show input debug overlay
+                </Text>
+                <Switch
+                  value={settings.showInputDebug}
+                  onValueChange={(value) => updateSettings({ showInputDebug: value })}
+                />
+              </View>
+              <Text selectable={false} style={styles.helpText}>
+                Shows touch attempts, recorded hits, and debounced touches on the home screen.
+              </Text>
+            </View>
+
+            <View style={[styles.cardBlock, styles.cardBlockBorder]}>
+              <Text selectable={false} style={styles.blockLabel}>
                 Timing calibration
               </Text>
               <Text selectable={false} style={styles.rowLabel}>

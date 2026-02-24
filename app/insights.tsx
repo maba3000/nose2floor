@@ -8,6 +8,7 @@ import {
   TextInput,
   Switch,
   useWindowDimensions,
+  type LayoutChangeEvent,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
@@ -67,7 +68,10 @@ export default function InsightsScreen() {
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { width: windowWidth } = useWindowDimensions();
-  const heatmapAvailableWidth = windowWidth - 92;
+  const [heatmapCardWidth, setHeatmapCardWidth] = useState(0);
+  const fallbackHeatmapWidth = windowWidth - 92;
+  const heatmapAvailableWidth =
+    heatmapCardWidth > 0 ? Math.max(120, heatmapCardWidth - 28 - 16) : fallbackHeatmapWidth;
   const previewMapSize = Math.max(220, Math.min(windowWidth - 72, 320));
 
   const [range, setRange] = useState<RangeKey>('month');
@@ -133,6 +137,10 @@ export default function InsightsScreen() {
       />
     </Pressable>
   );
+
+  const handleHeatmapCardLayout = (e: LayoutChangeEvent) => {
+    setHeatmapCardWidth(e.nativeEvent.layout.width);
+  };
 
   return (
     <View style={styles.container}>
@@ -325,7 +333,7 @@ export default function InsightsScreen() {
         {settings.insightsShowActivity && (
           <>
             <Text style={styles.sectionLabel}>Activity</Text>
-            <View style={styles.heatmapCard}>
+            <View style={styles.heatmapCard} onLayout={handleHeatmapCardLayout}>
               <ActivityHeatmap
                 sessions={filtered}
                 startMs={startMs}

@@ -2,6 +2,7 @@ import 'react-native-get-random-values';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent, Pressable, Platform } from 'react-native';
+import type { GestureResponderEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { v4 as uuid } from 'uuid';
@@ -24,6 +25,37 @@ import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
 const DEFAULT_MAX_RADIUS = 190;
+const INPUT_EVENT_DEDUPE_MS = 30;
+const DEBUG_MOVE_SAMPLE_MS = 40;
+const DEBUG_MOVE_MIN_DISTANCE = 6;
+const DEBUG_LONG_TOUCH_MS = 350;
+const DEBUG_SCROLL_DISTANCE = 20;
+
+type InputDebugStats = {
+  touches: number;
+  hits: number;
+  blocked: number;
+  moves: number;
+  long: number;
+  scrolls: number;
+};
+
+type DebugTouchMarker = {
+  id: number;
+  x: number;
+  y: number;
+  kind: 'hit' | 'blocked' | 'move' | 'scroll';
+};
+
+const EMPTY_INPUT_DEBUG: InputDebugStats = {
+  touches: 0,
+  hits: 0,
+  blocked: 0,
+  moves: 0,
+  long: 0,
+  scrolls: 0,
+};
+const MAX_DEBUG_TOUCHES = 250;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -56,12 +88,59 @@ export default function HomeScreen() {
     height: 0,
   });
   const [introVisible, setIntroVisible] = useState(false);
+  const [inputDebug, setInputDebug] = useState<InputDebugStats>(EMPTY_INPUT_DEBUG);
+  const [debugTouches, setDebugTouches] = useState<DebugTouchMarker[]>([]);
+  const lastInputEventRef = useRef<{ at: number; x: number; y: number } | null>(null);
+  const activeTouchRef = useRef<{
+    startAt: number;
+    startX: number;
+    startY: number;
+    lastMarkAt: number;
+    lastX: number;
+    lastY: number;
+  } | null>(null);
+  const debugTouchIdRef = useRef(0);
 
   useTimer();
 
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const checkDebounce = useDebounce(settings.hitCooldownMs);
+  const { isAllowed: checkDebounce, reset: resetHitDebounce } = useDebounce(settings.hitCooldownMs);
+
+  const resetInputDebug = useCallback(() => {
+    lastInputEventRef.current = null;
+    activeTouchRef.current = null;
+    setInputDebug(EMPTY_INPUT_DEBUG);
+    setDebugTouches([]);
+  }, []);
+
+  const incrementInputDebug = useCallback(
+    (key: keyof InputDebugStats) => {
+      if (!settings.showInputDebug) return;
+      setInputDebug((prev) => ({ ...prev, [key]: prev[key] + 1 }));
+    },
+    [settings.showInputDebug],
+  );
+
+  const addDebugTouch = useCallback(
+    (x: number, y: number, kind: DebugTouchMarker['kind']) => {
+      if (!settings.showInputDebug) return;
+      setDebugTouches((prev) => {
+        const next = [
+          ...prev,
+          {
+            id: ++debugTouchIdRef.current,
+            x,
+            y,
+            kind,
+          },
+        ];
+        if (next.length <= MAX_DEBUG_TOUCHES) return next;
+        return next.slice(next.length - MAX_DEBUG_TOUCHES);
+      });
+    },
+    [settings.showInputDebug],
+  );
 
   const triggerHitHaptic = useCallback(() => {
     if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
@@ -92,10 +171,13 @@ export default function HomeScreen() {
   );
 
   const handleTap = useCallback(
-    (tapX: number, tapY: number) => {
-      if (!checkDebounce()) return;
+    (tapX: number, tapY: number): boolean => {
+      if (!checkDebounce()) {
+        incrementInputDebug('blocked');
+        return false;
+      }
       const layout = layoutRef.current;
-      if (!layout) return;
+      if (!layout) return false;
 
       const distance = computeDistance(tapX, tapY, layout.cx, layout.cy, layout.maxRadius);
       const score = computeScore(distance);
@@ -114,15 +196,15 @@ export default function HomeScreen() {
       const tap = { x: tapX, y: tapY, score, at: now };
 
       recordHit(hit, tap, isActive);
+      incrementInputDebug('hits');
       triggerHitHaptic();
+      return true;
     },
-    [checkDebounce, isActive, recordHit, triggerHitHaptic],
+    [checkDebounce, incrementInputDebug, isActive, recordHit, triggerHitHaptic],
   );
 
   const handlePress = useCallback(
-    (e: {
-      nativeEvent: { locationX?: number; locationY?: number; offsetX?: number; offsetY?: number };
-    }) => {
+    (e: GestureResponderEvent) => {
       const nativeEvent = e.nativeEvent;
       const tapX =
         typeof nativeEvent.locationX === 'number'
@@ -132,19 +214,130 @@ export default function HomeScreen() {
         typeof nativeEvent.locationY === 'number'
           ? nativeEvent.locationY
           : (nativeEvent.offsetY ?? 0);
-      handleTap(tapX, tapY);
+      const eventTime = Number(nativeEvent.timestamp ?? Date.now());
+      const last = lastInputEventRef.current;
+      if (
+        last &&
+        Math.abs(eventTime - last.at) <= INPUT_EVENT_DEDUPE_MS &&
+        Math.abs(tapX - last.x) < 1 &&
+        Math.abs(tapY - last.y) < 1
+      ) {
+        return;
+      }
+      lastInputEventRef.current = { at: eventTime, x: tapX, y: tapY };
+      incrementInputDebug('touches');
+      const wasHit = handleTap(tapX, tapY);
+      addDebugTouch(tapX, tapY, wasHit ? 'hit' : 'blocked');
     },
-    [handleTap],
+    [addDebugTouch, handleTap, incrementInputDebug],
+  );
+
+  const handleTouchStart = useCallback(
+    (e: GestureResponderEvent) => {
+      if (Platform.OS === 'web') {
+        e.preventDefault();
+      }
+      if (settings.showInputDebug) {
+        const nativeEvent = e.nativeEvent;
+        const x =
+          typeof nativeEvent.locationX === 'number'
+            ? nativeEvent.locationX
+            : (nativeEvent.offsetX ?? 0);
+        const y =
+          typeof nativeEvent.locationY === 'number'
+            ? nativeEvent.locationY
+            : (nativeEvent.offsetY ?? 0);
+        const now = Number(nativeEvent.timestamp ?? Date.now());
+        activeTouchRef.current = {
+          startAt: now,
+          startX: x,
+          startY: y,
+          lastMarkAt: now,
+          lastX: x,
+          lastY: y,
+        };
+      }
+      handlePress(e);
+    },
+    [handlePress, settings.showInputDebug],
+  );
+
+  const handleTouchMove = useCallback(
+    (e: GestureResponderEvent) => {
+      if (!settings.showInputDebug) return;
+      const active = activeTouchRef.current;
+      if (!active) return;
+
+      const nativeEvent = e.nativeEvent;
+      const x =
+        typeof nativeEvent.locationX === 'number'
+          ? nativeEvent.locationX
+          : (nativeEvent.offsetX ?? 0);
+      const y =
+        typeof nativeEvent.locationY === 'number'
+          ? nativeEvent.locationY
+          : (nativeEvent.offsetY ?? 0);
+      const now = Number(nativeEvent.timestamp ?? Date.now());
+
+      const distanceSinceLast = Math.hypot(x - active.lastX, y - active.lastY);
+      const elapsedSinceLast = now - active.lastMarkAt;
+      if (distanceSinceLast < DEBUG_MOVE_MIN_DISTANCE && elapsedSinceLast < DEBUG_MOVE_SAMPLE_MS) {
+        return;
+      }
+
+      active.lastX = x;
+      active.lastY = y;
+      active.lastMarkAt = now;
+      incrementInputDebug('moves');
+      addDebugTouch(x, y, 'move');
+    },
+    [addDebugTouch, incrementInputDebug, settings.showInputDebug],
+  );
+
+  const handleTouchEnd = useCallback(
+    (e: GestureResponderEvent) => {
+      if (!settings.showInputDebug) return;
+      const active = activeTouchRef.current;
+      activeTouchRef.current = null;
+      if (!active) return;
+
+      const nativeEvent = e.nativeEvent;
+      const x =
+        typeof nativeEvent.locationX === 'number'
+          ? nativeEvent.locationX
+          : (nativeEvent.offsetX ?? 0);
+      const y =
+        typeof nativeEvent.locationY === 'number'
+          ? nativeEvent.locationY
+          : (nativeEvent.offsetY ?? 0);
+      const now = Number(nativeEvent.timestamp ?? Date.now());
+
+      const duration = now - active.startAt;
+      const totalDistance = Math.hypot(x - active.startX, y - active.startY);
+
+      if (duration >= DEBUG_LONG_TOUCH_MS) {
+        incrementInputDebug('long');
+      }
+      if (totalDistance >= DEBUG_SCROLL_DISTANCE) {
+        incrementInputDebug('scrolls');
+        addDebugTouch(x, y, 'scroll');
+      }
+    },
+    [addDebugTouch, incrementInputDebug, settings.showInputDebug],
   );
 
   const handleStartSession = useCallback(() => {
+    resetHitDebounce();
+    resetInputDebug();
     sessionStartTime.current = Date.now();
     sessionIdRef.current = uuid();
     startSession();
     triggerStartHaptic();
-  }, [startSession, triggerStartHaptic]);
+  }, [resetHitDebounce, resetInputDebug, startSession, triggerStartHaptic]);
 
   const handleStopSession = useCallback(() => {
+    resetHitDebounce();
+    resetInputDebug();
     if (settings.sessionMode === 'auto') {
       autoStartBlockedRef.current = true;
     }
@@ -187,6 +380,8 @@ export default function HomeScreen() {
     settings.bullseyeScale,
     settings.sessionMode,
     reset,
+    resetHitDebounce,
+    resetInputDebug,
     triggerStopHaptic,
   ]);
 
@@ -255,6 +450,11 @@ export default function HomeScreen() {
   useEffect(() => {
     setIntroVisible(settings.showIntro);
   }, [settings.showIntro]);
+
+  useEffect(() => {
+    if (!settings.showInputDebug) return;
+    resetInputDebug();
+  }, [settings.showInputDebug, resetInputDebug]);
 
   useEffect(() => {
     if (settings.sessionMode !== 'auto') return;
@@ -359,7 +559,14 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
-      <Pressable onPressIn={handlePress} style={styles.tapLayer} pointerEvents="box-only" />
+      <Pressable
+        onPressIn={handlePress}
+        onTouchStart={Platform.OS === 'web' ? handleTouchStart : undefined}
+        onTouchMove={Platform.OS === 'web' ? handleTouchMove : undefined}
+        onTouchEnd={Platform.OS === 'web' ? handleTouchEnd : undefined}
+        style={styles.tapLayer}
+        pointerEvents="box-only"
+      />
       {settings.showBullseye && canvasSize.width > 0 && (
         <View style={[StyleSheet.absoluteFill, styles.canvasWrapper]} pointerEvents="none">
           <BullseyeCanvas
@@ -372,6 +579,39 @@ export default function HomeScreen() {
 
       {markerVisible && lastTap && (
         <HitMarkerOverlay x={lastTap.x} y={lastTap.y} score={lastTap.score} showScore={true} />
+      )}
+
+      {settings.showInputDebug && (
+        <View style={styles.debugBadge} pointerEvents="none">
+          <Text selectable={false} style={styles.debugTitle}>
+            Input Debug
+          </Text>
+          <Text selectable={false} style={styles.debugLine}>
+            Touches {inputDebug.touches} · Hits {inputDebug.hits} · Blocked {inputDebug.blocked}
+          </Text>
+          <Text selectable={false} style={styles.debugHint}>
+            Moves {inputDebug.moves} · Long {inputDebug.long} · Scroll {inputDebug.scrolls}
+          </Text>
+          <Text selectable={false} style={styles.debugHint}>
+            Green = hit · Amber = blocked · Blue = move · Purple = scroll
+          </Text>
+        </View>
+      )}
+      {settings.showInputDebug && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {debugTouches.map((marker) => (
+            <View
+              key={marker.id}
+              style={[
+                styles.debugTouch,
+                marker.kind === 'hit' ? styles.debugTouchHit : styles.debugTouchBlocked,
+                marker.kind === 'move' ? styles.debugTouchMove : null,
+                marker.kind === 'scroll' ? styles.debugTouchScroll : null,
+                { left: marker.x - 4, top: marker.y - 4 },
+              ]}
+            />
+          ))}
+        </View>
       )}
 
       <View pointerEvents="box-none" style={styles.overlayLayer}>
@@ -421,6 +661,46 @@ const createStyles = (theme: Theme) =>
     tapLayer: { ...StyleSheet.absoluteFillObject, zIndex: 0 },
     overlayLayer: { ...StyleSheet.absoluteFillObject, zIndex: 1 },
     canvasWrapper: { alignItems: 'center', justifyContent: 'center' },
+    debugBadge: {
+      position: 'absolute',
+      top: 14,
+      alignSelf: 'center',
+      zIndex: 3,
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: theme.border,
+      backgroundColor: theme.cardSoft,
+      paddingHorizontal: 10,
+      paddingVertical: 6,
+      alignItems: 'center',
+      gap: 2,
+    },
+    debugTitle: { fontSize: 11, fontWeight: '600', color: theme.textSubtle },
+    debugLine: { fontSize: 11, color: theme.text },
+    debugHint: { fontSize: 10, color: theme.textFaint },
+    debugTouch: {
+      position: 'absolute',
+      width: 8,
+      height: 8,
+      borderRadius: 999,
+      borderWidth: 1,
+    },
+    debugTouchHit: {
+      backgroundColor: '#2E7D32',
+      borderColor: 'rgba(255,255,255,0.8)',
+    },
+    debugTouchBlocked: {
+      backgroundColor: '#FF8F00',
+      borderColor: 'rgba(255,255,255,0.8)',
+    },
+    debugTouchMove: {
+      backgroundColor: '#0288D1',
+      borderColor: 'rgba(255,255,255,0.8)',
+    },
+    debugTouchScroll: {
+      backgroundColor: '#7B1FA2',
+      borderColor: 'rgba(255,255,255,0.9)',
+    },
     cornerTopLeft: { position: 'absolute', top: 16, left: 16 },
     cornerTopRight: { position: 'absolute', top: 16, right: 16 },
     cornerBottomLeft: { position: 'absolute', bottom: 16, left: 16 },
