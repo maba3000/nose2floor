@@ -214,6 +214,9 @@ export default function HomeScreen() {
         typeof nativeEvent.locationY === 'number'
           ? nativeEvent.locationY
           : (nativeEvent.offsetY ?? 0);
+      if (Platform.OS === 'web' && tapX === 0 && tapY === 0) {
+        return;
+      }
       const eventTime = Number(nativeEvent.timestamp ?? Date.now());
       const last = lastInputEventRef.current;
       if (
@@ -257,9 +260,8 @@ export default function HomeScreen() {
           lastY: y,
         };
       }
-      handlePress(e);
     },
-    [handlePress, settings.showInputDebug],
+    [settings.showInputDebug],
   );
 
   const handleTouchMove = useCallback(
