@@ -29,6 +29,9 @@ export interface AppSettings {
   heatmapThresholds: [number, number, number, number];
   heatmapShowGoalStar: boolean;
   heatmapShowHitCount: boolean;
+  insightsShowPreview: boolean;
+  insightsShowActivity: boolean;
+  insightsShowStats: boolean;
   showBullseye: boolean;
   bullseyeScale: number;
   showHitMarkers: boolean;
@@ -46,6 +49,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   heatmapThresholds: [1, 25, 50, 75],
   heatmapShowGoalStar: true,
   heatmapShowHitCount: false,
+  insightsShowPreview: true,
+  insightsShowActivity: true,
+  insightsShowStats: true,
   showBullseye: true,
   bullseyeScale: 1.0,
   showHitMarkers: true,

@@ -14,6 +14,7 @@ import { useHistoryStore } from '@/store/historyStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { buildInsights, filterByRange, getRangeMs, type RangeKey } from '@/analytics/insights';
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
+import { HitMapCanvas } from '@/components/HitMapCanvas';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
@@ -33,6 +34,15 @@ function toDateString(ms: number): string {
     d.getFullYear(),
     String(d.getMonth() + 1).padStart(2, '0'),
     String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function toDisplayDate(ms: number): string {
+  const d = new Date(ms);
+  return [
+    String(d.getDate()).padStart(2, '0'),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    d.getFullYear(),
   ].join('-');
 }
 
@@ -57,6 +67,7 @@ export default function InsightsScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { width: windowWidth } = useWindowDimensions();
   const heatmapAvailableWidth = windowWidth - 92;
+  const previewMapSize = Math.max(220, Math.min(windowWidth - 72, 320));
 
   const [range, setRange] = useState<RangeKey>('month');
   const [showSettings, setShowSettings] = useState(false);
@@ -85,8 +96,25 @@ export default function InsightsScreen() {
   }, [range, customFrom, customTo, history]);
 
   const filtered = useMemo(() => filterByRange(history, startMs, endMs), [history, startMs, endMs]);
+  const combinedHits = useMemo(() => filtered.flatMap((session) => session.hits), [filtered]);
+  const combinedPoints = useMemo(
+    () => filtered.reduce((sum, session) => sum + session.totalScore, 0),
+    [filtered],
+  );
+  const combinedReps = useMemo(
+    () => filtered.reduce((sum, session) => sum + session.reps, 0),
+    [filtered],
+  );
+  const missingHitMapCount = useMemo(
+    () => filtered.reduce((sum, session) => sum + Math.max(0, session.reps - session.hits.length), 0),
+    [filtered],
+  );
 
   const stats = useMemo(() => buildInsights(filtered), [filtered]);
+  const rangeLabel = useMemo(
+    () => `${toDisplayDate(startMs)} - ${toDisplayDate(endMs)}`,
+    [startMs, endMs],
+  );
 
   const swatchColors = theme.isDark ? HEATMAP_DARK_COLORS : HEATMAP_LIGHT_COLORS;
 
@@ -109,70 +137,109 @@ export default function InsightsScreen() {
         {/* Inline settings panel */}
         {showSettings && (
           <View style={styles.settingsPanel}>
-            <Text selectable={false} style={styles.panelLabel}>
-              Daily goal
-            </Text>
-            <Text selectable={false} style={styles.panelValue}>
-              {settings.dailyGoal} hits
-            </Text>
-            <Slider
-              minimumValue={1}
-              maximumValue={200}
-              step={1}
-              value={settings.dailyGoal}
-              onValueChange={(v) => updateSettings({ dailyGoal: v })}
-            />
-
-            <Text selectable={false} style={[styles.panelLabel, { marginTop: 12 }]}>
-              Heatmap colors
-            </Text>
-            {([0, 1, 2, 3] as const).map((i) => (
-              <React.Fragment key={i}>
-                <View style={styles.thresholdRow}>
-                  <View style={[styles.swatch, { backgroundColor: swatchColors[i] }]} />
-                  <Text selectable={false} style={styles.panelValue}>
-                    Level {i + 1}: {settings.heatmapThresholds[i]}+ hits
-                  </Text>
-                </View>
-                <Slider
-                  minimumValue={1}
-                  maximumValue={200}
-                  step={1}
-                  value={settings.heatmapThresholds[i]}
-                  onValueChange={(v) => {
-                    const next = [...settings.heatmapThresholds] as [
-                      number,
-                      number,
-                      number,
-                      number,
-                    ];
-                    next[i] = v;
-                    updateSettings({ heatmapThresholds: next });
-                  }}
-                />
-              </React.Fragment>
-            ))}
-
-            <Text selectable={false} style={[styles.panelLabel, { marginTop: 12 }]}>
-              Tile display
-            </Text>
-            <View style={styles.switchRow}>
-              <Text selectable={false} style={styles.panelValue}>
-                Show goal star
+            <View style={styles.panelSection}>
+              <Text selectable={false} style={styles.panelLabel}>
+                Sections
               </Text>
-              <Switch
-                value={settings.heatmapShowGoalStar}
-                onValueChange={(v) => updateSettings({ heatmapShowGoalStar: v })}
+              <View style={styles.switchRow}>
+                <Text selectable={false} style={styles.panelValue}>
+                  Show preview
+                </Text>
+                <Switch
+                  value={settings.insightsShowPreview}
+                  onValueChange={(v) => updateSettings({ insightsShowPreview: v })}
+                />
+              </View>
+              <View style={styles.switchRow}>
+                <Text selectable={false} style={styles.panelValue}>
+                  Show activity
+                </Text>
+                <Switch
+                  value={settings.insightsShowActivity}
+                  onValueChange={(v) => updateSettings({ insightsShowActivity: v })}
+                />
+              </View>
+              <View style={styles.switchRow}>
+                <Text selectable={false} style={styles.panelValue}>
+                  Show stats
+                </Text>
+                <Switch
+                  value={settings.insightsShowStats}
+                  onValueChange={(v) => updateSettings({ insightsShowStats: v })}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.panelSection, styles.panelSectionBorder]}>
+              <Text selectable={false} style={styles.panelLabel}>
+                Daily goal
+              </Text>
+              <Text selectable={false} style={styles.panelValue}>
+                {settings.dailyGoal} hits
+              </Text>
+              <Slider
+                minimumValue={1}
+                maximumValue={200}
+                step={1}
+                value={settings.dailyGoal}
+                onValueChange={(v) => updateSettings({ dailyGoal: v })}
               />
             </View>
-            <View style={styles.switchRow}>
-              <Text selectable={false} style={styles.panelValue}>
-                Show hit count
+
+            <View style={[styles.panelSection, styles.panelSectionBorder]}>
+              <Text selectable={false} style={styles.panelLabel}>
+                Activity tiles
               </Text>
-              <Switch
-                value={settings.heatmapShowHitCount}
-                onValueChange={(v) => updateSettings({ heatmapShowHitCount: v })}
-              />
+              <View style={styles.switchRow}>
+                <Text selectable={false} style={styles.panelValue}>
+                  Show goal star
+                </Text>
+                <Switch
+                  value={settings.heatmapShowGoalStar}
+                  onValueChange={(v) => updateSettings({ heatmapShowGoalStar: v })}
+                />
+              </View>
+              <View style={styles.switchRow}>
+                <Text selectable={false} style={styles.panelValue}>
+                  Show hit count
+                </Text>
+                <Switch
+                  value={settings.heatmapShowHitCount}
+                  onValueChange={(v) => updateSettings({ heatmapShowHitCount: v })}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.panelSection, styles.panelSectionBorder]}>
+              <Text selectable={false} style={styles.panelLabel}>
+                Heatmap levels
+              </Text>
+              {([0, 1, 2, 3] as const).map((i) => (
+                <React.Fragment key={i}>
+                  <View style={styles.thresholdRow}>
+                    <View style={[styles.swatch, { backgroundColor: swatchColors[i] }]} />
+                    <Text selectable={false} style={styles.panelValue}>
+                      Level {i + 1}: {settings.heatmapThresholds[i]}+ hits
+                    </Text>
+                  </View>
+                  <Slider
+                    minimumValue={1}
+                    maximumValue={200}
+                    step={1}
+                    value={settings.heatmapThresholds[i]}
+                    onValueChange={(v) => {
+                      const next = [...settings.heatmapThresholds] as [
+                        number,
+                        number,
+                        number,
+                        number,
+                      ];
+                      next[i] = v;
+                      updateSettings({ heatmapThresholds: next });
+                    }}
+                  />
+                </React.Fragment>
+              ))}
             </View>
           </View>
         )}
@@ -221,35 +288,72 @@ export default function InsightsScreen() {
           </View>
         )}
 
-        {/* Activity heatmap */}
-        <Text style={styles.sectionLabel}>Activity</Text>
-        <View style={styles.heatmapCard}>
-          <ActivityHeatmap
-            sessions={filtered}
-            startMs={startMs}
-            endMs={endMs}
-            availableWidth={heatmapAvailableWidth}
-            dailyGoal={settings.dailyGoal}
-            heatmapThresholds={settings.heatmapThresholds}
-            showGoalStar={settings.heatmapShowGoalStar}
-            showHitCount={settings.heatmapShowHitCount}
-          />
-        </View>
-
-        {/* Stats grid */}
-        <Text style={styles.sectionLabel}>Stats</Text>
-        <View style={styles.grid}>
-          {stats.map((stat) => (
-            <View key={stat.label} style={styles.card}>
-              <Text selectable={false} style={styles.cardLabel}>
-                {stat.label}
+        {settings.insightsShowPreview && (
+          <>
+            <Text style={styles.sectionLabel}>Preview</Text>
+            <View style={styles.previewCard}>
+              <Text selectable={false} style={styles.previewTitle}>
+                {rangeLabel}
               </Text>
-              <Text selectable={false} style={styles.cardValue}>
-                {stat.value}
-              </Text>
+              {filtered.length === 0 ? (
+                <Text selectable={false} style={styles.previewHint}>
+                  No sessions in this range.
+                </Text>
+              ) : (
+                <>
+                  <Text selectable={false} style={styles.previewHint}>
+                    Sessions: {filtered.length} · Hits: {combinedReps} · Points: {combinedPoints}
+                  </Text>
+                  <View style={styles.previewCanvasWrap}>
+                    <HitMapCanvas size={previewMapSize} scale={1} hits={combinedHits} />
+                  </View>
+                  {missingHitMapCount > 0 && (
+                    <Text selectable={false} style={styles.previewHint}>
+                      {missingHitMapCount} hits have no marker data, so they are not visible on the
+                      map.
+                    </Text>
+                  )}
+                </>
+              )}
             </View>
-          ))}
-        </View>
+          </>
+        )}
+
+        {settings.insightsShowActivity && (
+          <>
+            <Text style={styles.sectionLabel}>Activity</Text>
+            <View style={styles.heatmapCard}>
+              <ActivityHeatmap
+                sessions={filtered}
+                startMs={startMs}
+                endMs={endMs}
+                availableWidth={heatmapAvailableWidth}
+                dailyGoal={settings.dailyGoal}
+                heatmapThresholds={settings.heatmapThresholds}
+                showGoalStar={settings.heatmapShowGoalStar}
+                showHitCount={settings.heatmapShowHitCount}
+              />
+            </View>
+          </>
+        )}
+
+        {settings.insightsShowStats && (
+          <>
+            <Text style={styles.sectionLabel}>Stats</Text>
+            <View style={styles.grid}>
+              {stats.map((stat) => (
+                <View key={stat.label} style={styles.card}>
+                  <Text selectable={false} style={styles.cardLabel}>
+                    {stat.label}
+                  </Text>
+                  <Text selectable={false} style={styles.cardValue}>
+                    {stat.value}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -284,12 +388,20 @@ const createStyles = (theme: Theme) =>
 
     // Settings panel
     settingsPanel: {
-      padding: 14,
+      paddingVertical: 10,
       borderRadius: 12,
       backgroundColor: theme.cardSoft,
       borderWidth: 1,
       borderColor: theme.border,
       marginBottom: 16,
+    },
+    panelSection: {
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    panelSectionBorder: {
+      borderTopWidth: 1,
+      borderTopColor: theme.border,
     },
     panelLabel: {
       fontSize: 11,
@@ -297,7 +409,7 @@ const createStyles = (theme: Theme) =>
       color: theme.textSubtle,
       textTransform: 'uppercase',
       letterSpacing: 0.7,
-      marginBottom: 2,
+      marginBottom: 4,
     },
     panelValue: {
       fontSize: 13,
@@ -374,6 +486,30 @@ const createStyles = (theme: Theme) =>
     },
 
     // Heatmap card
+    previewCard: {
+      padding: 14,
+      borderRadius: 12,
+      backgroundColor: theme.cardSoft,
+      borderWidth: 1,
+      borderColor: theme.border,
+      marginBottom: 20,
+    },
+    previewTitle: {
+      fontSize: 13,
+      fontWeight: '600',
+      color: theme.text,
+      marginBottom: 4,
+      textTransform: 'capitalize',
+    },
+    previewHint: {
+      fontSize: 12,
+      color: theme.textSubtle,
+    },
+    previewCanvasWrap: {
+      alignItems: 'center',
+      marginTop: 12,
+      marginBottom: 8,
+    },
     heatmapCard: {
       padding: 14,
       borderRadius: 12,
