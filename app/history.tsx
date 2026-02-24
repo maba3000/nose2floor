@@ -84,16 +84,12 @@ export default function HistoryScreen() {
   };
 
   const showInvalidHitsError = () => {
-    setInvalidHitsMessage('Enter a whole number of hits from 0 up to recorded markers.');
+    setInvalidHitsMessage('Enter a whole number of hits (0 or more).');
   };
 
   const saveEdit = (session: WorkoutSession) => {
     const result = applyHitsCorrection(session, draftHits);
     if (!result.ok) {
-      if (result.error === 'exceeds_recorded_hits') {
-        setInvalidHitsMessage(`Cannot set hits above recorded markers (${session.hits.length}).`);
-        return;
-      }
       showInvalidHitsError();
       return;
     }
@@ -176,7 +172,7 @@ export default function HistoryScreen() {
                   placeholderTextColor={theme.textFaint}
                 />
                 <Text selectable={false} style={styles.editHint}>
-                  Max editable hits: {item.hits.length}. Points recalculate from markers.
+                  You can set hits above recorded markers. Extra hits are saved without map points.
                 </Text>
                 <View style={styles.editPanelActions}>
                   <Pressable style={styles.cancelButton} onPress={cancelEdit}>

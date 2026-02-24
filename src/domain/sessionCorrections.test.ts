@@ -19,9 +19,13 @@ test('applyHitsCorrection rejects non-numeric values', () => {
   expect(result).toEqual({ ok: false, error: 'invalid_hits' });
 });
 
-test('applyHitsCorrection rejects values above recorded markers', () => {
+test('applyHitsCorrection allows values above recorded markers', () => {
   const result = applyHitsCorrection(session, '4');
-  expect(result).toEqual({ ok: false, error: 'exceeds_recorded_hits' });
+  expect(result.ok).toBe(true);
+  if (!result.ok) return;
+  expect(result.session.reps).toBe(4);
+  expect(result.session.hits).toHaveLength(3);
+  expect(result.session.totalScore).toBe(24);
 });
 
 test('applyHitsCorrection trims hits and recalculates points', () => {

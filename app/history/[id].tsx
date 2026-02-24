@@ -43,13 +43,18 @@ export default function SessionDetailScreen() {
   const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
   const mins = Math.floor(session.durationSeconds / 60);
   const secs = session.durationSeconds % 60;
+  const missingHitDataCount = Math.max(0, session.reps - session.hits.length);
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Session" />
-      <Text selectable={false} style={styles.subHeader}>
-        {dateStr}
-      </Text>
+      <ScreenHeader
+        title="Session"
+        rightAction={
+          <Text selectable={false} numberOfLines={1} style={styles.headerDate}>
+            {dateStr}
+          </Text>
+        }
+      />
 
       <View style={styles.statsRow}>
         <Stat label="HITS" value={`${session.reps}`} />
@@ -61,6 +66,11 @@ export default function SessionDetailScreen() {
         <View style={styles.canvasWrapper}>
           <HitMapCanvas size={300} scale={session.bullseyeScale} hits={session.hits} />
         </View>
+        {missingHitDataCount > 0 && (
+          <Text selectable={false} style={styles.missingData}>
+            * {missingHitDataCount} hits with no data
+          </Text>
+        )}
       </ScrollView>
     </View>
   );
@@ -69,11 +79,12 @@ export default function SessionDetailScreen() {
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.background },
-    subHeader: {
-      paddingHorizontal: 24,
-      paddingBottom: 8,
-      fontSize: 14,
+    headerDate: {
+      fontSize: 12,
       color: theme.textSubtle,
+      marginLeft: 8,
+      maxWidth: 170,
+      textAlign: 'right',
     },
     statsRow: { flexDirection: 'row', paddingHorizontal: 24, paddingBottom: 8 },
     stat: { flex: 1, alignItems: 'center' },
@@ -81,6 +92,7 @@ const createStyles = (theme: Theme) =>
     statLabel: { fontSize: 12, letterSpacing: 1, color: theme.textFaint },
     content: { alignItems: 'center', paddingBottom: 24 },
     canvasWrapper: { marginTop: 16 },
+    missingData: { marginTop: 10, fontSize: 12, color: theme.textSubtle },
     empty: { flex: 1, alignItems: 'center', justifyContent: 'center' },
     emptyText: { fontSize: 16, color: theme.textFaint },
   });

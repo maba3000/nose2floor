@@ -313,8 +313,7 @@ export default function InsightsScreen() {
                   </View>
                   {missingHitMapCount > 0 && (
                     <Text selectable={false} style={styles.previewHint}>
-                      {missingHitMapCount} hits have no marker data, so they are not visible on the
-                      map.
+                      * {missingHitMapCount} hits with no data
                     </Text>
                   )}
                 </>

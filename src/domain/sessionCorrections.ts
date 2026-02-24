@@ -1,6 +1,6 @@
 import type { WorkoutSession } from './entities';
 
-type SessionCorrectionError = 'invalid_hits' | 'exceeds_recorded_hits';
+type SessionCorrectionError = 'invalid_hits';
 
 export type SessionCorrectionResult =
   | { ok: true; session: WorkoutSession }
@@ -20,12 +20,11 @@ export function applyHitsCorrection(
     return { ok: false, error: 'invalid_hits' };
   }
 
-  if (nextReps > session.hits.length) {
-    return { ok: false, error: 'exceeds_recorded_hits' };
-  }
-
-  const nextHits = session.hits.slice(0, nextReps);
-  const nextTotalScore = nextHits.reduce((sum, hit) => sum + hit.score, 0);
+  const nextHits = nextReps <= session.hits.length ? session.hits.slice(0, nextReps) : session.hits;
+  const nextTotalScore =
+    nextReps <= session.hits.length
+      ? nextHits.reduce((sum, hit) => sum + hit.score, 0)
+      : session.totalScore;
 
   return {
     ok: true,
