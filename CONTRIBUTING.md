@@ -4,8 +4,26 @@
 
 ```bash
 npm install
-npx expo start   # pick w / a / i for web / Android / iOS
+npx expo start
 ```
+
+In Expo CLI, press:
+
+- `w` for web
+- `a` for Android
+- `i` for iOS
+
+## Run commands
+
+| Command                  | Description                                 |
+| ------------------------ | ------------------------------------------- |
+| `npm start`              | Start Expo dev server (all platforms)       |
+| `npm run web`            | Start web target                            |
+| `npm run android`        | Start Android target                        |
+| `npm run ios`            | Start iOS target                            |
+| `npm run lint`           | Run ESLint                                  |
+| `npm test`               | Run Jest tests                              |
+| `npm run generate:icons` | Regenerate PNG icons from `assets/icon.svg` |
 
 ## Code style
 

@@ -1,32 +1,36 @@
-# Nose2Floor
+<p align="center">
+  <img src="assets/icon-192.png" alt="Nose2Floor icon" width="96" height="96" />
+</p>
 
-Push-up counter app — place your phone on the floor, do a push-up, and touch the bull's-eye with your nose to score a rep.
+<h1 align="center">Nose2Floor</h1>
 
-Built with [React Native](https://reactnative.dev/) and [Expo](https://expo.dev/).
+<p align="center">
+  A push-up counter you can use as a simple rep tracker or as a playful nose-target challenge.
+</p>
 
-## Quick start
+<p align="center">
+  Built with React Native + Expo.
+</p>
 
-```bash
-npm install
-npx expo start
-```
+## Idea
 
-Then press `w` for web, `a` for Android, or `i` for iOS in the Expo CLI.
+Nose2Floor turns push-ups into a simple game:
 
-## Scripts
+- Place your phone on the floor.
+- Start a session.
+- Touch the on-screen target with your nose on each rep.
+- Track progress in history and insights.
 
-| Command                  | Description                                 |
-| ------------------------ | ------------------------------------------- |
-| `npm start`              | Start Expo dev server (all platforms)       |
-| `npm run web`            | Start in web mode                           |
-| `npm run android`        | Start on Android                            |
-| `npm run ios`            | Start on iOS                                |
-| `npm run lint`           | Run ESLint                                  |
-| `npm test`               | Run Jest tests                              |
-| `npm run generate:icons` | Regenerate PNG icons from `assets/icon.svg` |
+## Platform Availability
 
-## Documentation
+| Platform | Status    | Link                                     |
+| -------- | --------- | ---------------------------------------- |
+| Web      | Available | [nose2floor.com](https://nose2floor.com) |
+| Android  | Pending   | F-Droid pending · Google Play pending    |
+| iOS      | Pending   | Apple App Store pending                  |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for project structure and design decisions.
+## Project Links
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+- Architecture notes: [ARCHITECTURE.md](ARCHITECTURE.md)
+- Contribution and local run guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- License: [LICENSE](LICENSE)

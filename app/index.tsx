@@ -26,8 +26,8 @@ import type { Theme } from '@/theme';
 
 const DEFAULT_MAX_RADIUS = 190;
 const INPUT_EVENT_DEDUPE_MS = 30;
-const DEBUG_MOVE_SAMPLE_MS = 40;
-const DEBUG_MOVE_MIN_DISTANCE = 6;
+const MOVE_SAMPLE_MS = 40;
+const MOVE_MIN_DISTANCE = 6;
 const DEBUG_LONG_TOUCH_MS = 350;
 const DEBUG_SCROLL_DISTANCE = 20;
 
@@ -205,6 +205,8 @@ export default function HomeScreen() {
 
   const handlePress = useCallback(
     (e: GestureResponderEvent) => {
+      // Touch events are handled by onTouchEnd; this is only for mouse clicks on web
+      if (activeTouchRef.current !== null) return;
       const nativeEvent = e.nativeEvent;
       const tapX =
         typeof nativeEvent.locationX === 'number'
@@ -240,33 +242,33 @@ export default function HomeScreen() {
       if (Platform.OS === 'web') {
         e.preventDefault();
       }
-      if (settings.showInputDebug) {
-        const nativeEvent = e.nativeEvent;
-        const x =
-          typeof nativeEvent.locationX === 'number'
-            ? nativeEvent.locationX
-            : (nativeEvent.offsetX ?? 0);
-        const y =
-          typeof nativeEvent.locationY === 'number'
-            ? nativeEvent.locationY
-            : (nativeEvent.offsetY ?? 0);
-        const now = Number(nativeEvent.timestamp ?? Date.now());
-        activeTouchRef.current = {
-          startAt: now,
-          startX: x,
-          startY: y,
-          lastMarkAt: now,
-          lastX: x,
-          lastY: y,
-        };
-      }
+      const nativeEvent = e.nativeEvent;
+      const x =
+        typeof nativeEvent.locationX === 'number'
+          ? nativeEvent.locationX
+          : (nativeEvent.offsetX ?? 0);
+      const y =
+        typeof nativeEvent.locationY === 'number'
+          ? nativeEvent.locationY
+          : (nativeEvent.offsetY ?? 0);
+      const now = Number(nativeEvent.timestamp ?? Date.now());
+      activeTouchRef.current = {
+        startAt: now,
+        startX: x,
+        startY: y,
+        lastMarkAt: now,
+        lastX: x,
+        lastY: y,
+      };
+      incrementInputDebug('touches');
+      const wasHit = handleTap(x, y);
+      addDebugTouch(x, y, wasHit ? 'hit' : 'blocked');
     },
-    [settings.showInputDebug],
+    [addDebugTouch, handleTap, incrementInputDebug],
   );
 
   const handleTouchMove = useCallback(
     (e: GestureResponderEvent) => {
-      if (!settings.showInputDebug) return;
       const active = activeTouchRef.current;
       if (!active) return;
 
@@ -283,7 +285,7 @@ export default function HomeScreen() {
 
       const distanceSinceLast = Math.hypot(x - active.lastX, y - active.lastY);
       const elapsedSinceLast = now - active.lastMarkAt;
-      if (distanceSinceLast < DEBUG_MOVE_MIN_DISTANCE && elapsedSinceLast < DEBUG_MOVE_SAMPLE_MS) {
+      if (distanceSinceLast < MOVE_MIN_DISTANCE && elapsedSinceLast < MOVE_SAMPLE_MS) {
         return;
       }
 
@@ -291,17 +293,17 @@ export default function HomeScreen() {
       active.lastY = y;
       active.lastMarkAt = now;
       incrementInputDebug('moves');
-      addDebugTouch(x, y, 'move');
+      const wasHit = handleTap(x, y);
+      addDebugTouch(x, y, wasHit ? 'hit' : 'move');
     },
-    [addDebugTouch, incrementInputDebug, settings.showInputDebug],
+    [addDebugTouch, handleTap, incrementInputDebug],
   );
 
   const handleTouchEnd = useCallback(
     (e: GestureResponderEvent) => {
-      if (!settings.showInputDebug) return;
       const active = activeTouchRef.current;
       activeTouchRef.current = null;
-      if (!active) return;
+      if (!settings.showInputDebug || !active) return;
 
       const nativeEvent = e.nativeEvent;
       const x =
@@ -562,10 +564,10 @@ export default function HomeScreen() {
         </View>
       )}
       <Pressable
-        onPressIn={handlePress}
-        onTouchStart={Platform.OS === 'web' ? handleTouchStart : undefined}
-        onTouchMove={Platform.OS === 'web' ? handleTouchMove : undefined}
-        onTouchEnd={Platform.OS === 'web' ? handleTouchEnd : undefined}
+        onPressIn={Platform.OS === 'web' ? handlePress : undefined}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
         style={styles.tapLayer}
         pointerEvents="box-only"
       />
@@ -585,17 +587,10 @@ export default function HomeScreen() {
 
       {settings.showInputDebug && (
         <View style={styles.debugBadge} pointerEvents="none">
-          <Text selectable={false} style={styles.debugTitle}>
-            Input Debug
-          </Text>
+          {/* T=Touches H=Hits B=Blocked M=Moves L=Long S=Scrolls */}
           <Text selectable={false} style={styles.debugLine}>
-            Touches {inputDebug.touches} · Hits {inputDebug.hits} · Blocked {inputDebug.blocked}
-          </Text>
-          <Text selectable={false} style={styles.debugHint}>
-            Moves {inputDebug.moves} · Long {inputDebug.long} · Scroll {inputDebug.scrolls}
-          </Text>
-          <Text selectable={false} style={styles.debugHint}>
-            Green = hit · Amber = blocked · Blue = move · Purple = scroll
+            T {inputDebug.touches} · H {inputDebug.hits} · B {inputDebug.blocked} · M{' '}
+            {inputDebug.moves} · L {inputDebug.long} · S {inputDebug.scrolls}
           </Text>
         </View>
       )}
@@ -668,18 +663,14 @@ const createStyles = (theme: Theme) =>
       top: 14,
       alignSelf: 'center',
       zIndex: 3,
-      borderRadius: 10,
+      borderRadius: 999,
       borderWidth: 1,
       borderColor: theme.border,
       backgroundColor: theme.cardSoft,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      alignItems: 'center',
-      gap: 2,
+      paddingHorizontal: 12,
+      paddingVertical: 3,
     },
-    debugTitle: { fontSize: 11, fontWeight: '600', color: theme.textSubtle },
     debugLine: { fontSize: 11, color: theme.text },
-    debugHint: { fontSize: 10, color: theme.textFaint },
     debugTouch: {
       position: 'absolute',
       width: 8,

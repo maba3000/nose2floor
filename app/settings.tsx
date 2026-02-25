@@ -12,6 +12,7 @@ const THEME_OPTIONS = [
   ['dark', 'Dark'],
   ['system', 'System'],
 ] as const;
+const DAILY_GOAL_PRESETS = [25, 50, 75, 100, 150] as const;
 
 const CORNER_OPTIONS: CornerWidget[] = ['none', 'hits', 'points', 'timer', 'goal'];
 const CORNER_POSITIONS = [
@@ -107,6 +108,25 @@ export default function SettingsScreen() {
               value={settings.dailyGoal}
               onValueChange={(value) => updateSettings({ dailyGoal: value })}
             />
+            <View style={styles.goalPills}>
+              {DAILY_GOAL_PRESETS.map((preset) => {
+                const active = settings.dailyGoal === preset;
+                return (
+                  <Pressable
+                    key={preset}
+                    onPress={() => updateSettings({ dailyGoal: preset })}
+                    style={[styles.pill, active && styles.pillActive]}
+                  >
+                    <Text
+                      selectable={false}
+                      style={[styles.pillText, active && styles.pillTextActive]}
+                    >
+                      {preset}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <Text selectable={false} style={styles.helpText}>
               Set one corner widget to Goal to see remaining reps for today.
             </Text>
@@ -315,6 +335,7 @@ const createStyles = (theme: Theme) =>
     rowLabel: { fontSize: 14, color: theme.text },
     helpText: { fontSize: 12, color: theme.textSubtle, marginTop: 4 },
     appearanceRow: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+    goalPills: { flexDirection: 'row', gap: 6, flexWrap: 'wrap', marginTop: 8 },
     pill: {
       paddingHorizontal: 12,
       paddingVertical: 7,
