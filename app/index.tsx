@@ -31,9 +31,27 @@ const MOVE_MIN_DISTANCE = 6;
 const DEBUG_LONG_TOUCH_MS = 350;
 const DEBUG_SCROLL_DISTANCE = 20;
 
-// offsetX/Y are web-only properties not present in RN's NativeTouchEvent type
+// On web (iPhone Safari), touch events are DOM TouchEvents — they have changedTouches/touches
+// with clientX/clientY, not locationX/locationY or offsetX/offsetY.
 function readEventXY(nativeEvent: GestureResponderEvent['nativeEvent']) {
-  const ev = nativeEvent as typeof nativeEvent & { offsetX?: number; offsetY?: number };
+  const ev = nativeEvent as typeof nativeEvent & {
+    offsetX?: number;
+    offsetY?: number;
+    clientX?: number;
+    clientY?: number;
+    changedTouches?: ArrayLike<{ clientX: number; clientY: number }>;
+    touches?: ArrayLike<{ clientX: number; clientY: number }>;
+  };
+  if (Platform.OS === 'web') {
+    const touchList = ev.changedTouches ?? ev.touches;
+    if (touchList && touchList.length > 0) {
+      return { x: touchList[0].clientX, y: touchList[0].clientY };
+    }
+    // Mouse click fallback
+    if (typeof ev.clientX === 'number') return { x: ev.clientX, y: ev.clientY ?? 0 };
+    if (typeof ev.offsetX === 'number') return { x: ev.offsetX, y: ev.offsetY ?? 0 };
+    return { x: 0, y: 0 };
+  }
   const x = typeof ev.locationX === 'number' ? ev.locationX : (ev.offsetX ?? 0);
   const y = typeof ev.locationY === 'number' ? ev.locationY : (ev.offsetY ?? 0);
   return { x, y };
@@ -280,10 +298,10 @@ export default function HomeScreen() {
       active.lastY = y;
       active.lastMarkAt = now;
       incrementInputDebug('moves');
-      const wasHit = handleTap(x, y);
-      addDebugTouch(x, y, wasHit ? 'hit' : 'move');
+      // Do not register hits during move/scroll — a hit is only recorded on touchstart.
+      addDebugTouch(x, y, 'move');
     },
-    [addDebugTouch, handleTap, incrementInputDebug],
+    [addDebugTouch, incrementInputDebug],
   );
 
   const handleTouchEnd = useCallback(

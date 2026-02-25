@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { buildInsights, filterByRange, getRangeMs, type RangeKey } from '@/analytics/insights';
@@ -29,6 +30,7 @@ const RANGE_PILLS: { key: RangeKey; label: string }[] = [
 
 const HEATMAP_LIGHT_COLORS = ['#FFF9C4', '#FFD740', '#FF6D00', '#C62828'];
 const HEATMAP_DARK_COLORS = ['#4A3728', '#F9A825', '#BF360C', '#7F0000'];
+type CaptureSection = 'preview' | 'activity' | 'stats';
 
 function toDateString(ms: number): string {
   const d = new Date(ms);
@@ -61,10 +63,24 @@ function parseLocalDate(s: string): number | null {
   return date.getTime();
 }
 
+function isRangeKey(value: string | undefined): value is RangeKey {
+  return value === 'month' || value === 'year' || value === 'custom';
+}
+
+function isCaptureSection(value: string | undefined): value is CaptureSection {
+  return value === 'preview' || value === 'activity' || value === 'stats';
+}
+
 export default function InsightsScreen() {
   const history = useHistoryStore((s) => s.history);
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const params = useLocalSearchParams<{
+    range?: string;
+    from?: string;
+    to?: string;
+    capture?: string;
+  }>();
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const { width: windowWidth } = useWindowDimensions();
@@ -74,14 +90,30 @@ export default function InsightsScreen() {
     heatmapCardWidth > 0 ? Math.max(120, heatmapCardWidth - 28 - 16) : fallbackHeatmapWidth;
   const previewMapSize = Math.max(220, Math.min(windowWidth - 72, 320));
 
-  const [range, setRange] = useState<RangeKey>('month');
+  const requestedRange = isRangeKey(params.range) ? params.range : undefined;
+  const requestedFrom =
+    typeof params.from === 'string' && parseLocalDate(params.from) !== null
+      ? params.from
+      : undefined;
+  const requestedTo =
+    typeof params.to === 'string' && parseLocalDate(params.to) !== null ? params.to : undefined;
+  const captureSection = isCaptureSection(params.capture) ? params.capture : undefined;
+
+  const [range, setRange] = useState<RangeKey>(requestedRange ?? 'month');
   const [showSettings, setShowSettings] = useState(false);
   const [customFrom, setCustomFrom] = useState(() => {
+    if (requestedFrom) return requestedFrom;
     if (history.length === 0) return toDateString(Date.now());
     const oldestMs = history.reduce((min, s) => Math.min(min, s.startedAt), Infinity);
     return toDateString(oldestMs);
   });
-  const [customTo, setCustomTo] = useState(() => toDateString(Date.now()));
+  const [customTo, setCustomTo] = useState(() => requestedTo ?? toDateString(Date.now()));
+
+  React.useEffect(() => {
+    if (requestedRange && requestedRange !== range) setRange(requestedRange);
+    if (requestedFrom && requestedFrom !== customFrom) setCustomFrom(requestedFrom);
+    if (requestedTo && requestedTo !== customTo) setCustomTo(requestedTo);
+  }, [requestedRange, requestedFrom, requestedTo, range, customFrom, customTo]);
 
   const [startMs, endMs] = useMemo(() => {
     if (range === 'custom') {
@@ -123,6 +155,12 @@ export default function InsightsScreen() {
   );
 
   const swatchColors = theme.isDark ? HEATMAP_DARK_COLORS : HEATMAP_LIGHT_COLORS;
+  const showPreview =
+    captureSection !== undefined ? captureSection === 'preview' : settings.insightsShowPreview;
+  const showActivity =
+    captureSection !== undefined ? captureSection === 'activity' : settings.insightsShowActivity;
+  const showStats =
+    captureSection !== undefined ? captureSection === 'stats' : settings.insightsShowStats;
 
   const gearButton = (
     <Pressable
@@ -144,10 +182,15 @@ export default function InsightsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Insights" rightAction={gearButton} />
-      <ScrollView contentContainerStyle={styles.content}>
+      {captureSection === undefined && <ScreenHeader title="Insights" rightAction={gearButton} />}
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          captureSection !== undefined && styles.captureContent,
+        ]}
+      >
         {/* Inline settings panel */}
-        {showSettings && (
+        {captureSection === undefined && showSettings && (
           <View style={styles.settingsPanel}>
             <View style={styles.panelSection}>
               <Text selectable={false} style={styles.panelLabel}>
@@ -257,25 +300,30 @@ export default function InsightsScreen() {
         )}
 
         {/* Range pills */}
-        <View style={styles.pillRow}>
-          {RANGE_PILLS.map(({ key, label }) => {
-            const active = range === key;
-            return (
-              <Pressable
-                key={key}
-                onPress={() => setRange(key)}
-                style={[styles.pill, active && styles.pillActive]}
-              >
-                <Text selectable={false} style={[styles.pillText, active && styles.pillTextActive]}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        {captureSection === undefined && (
+          <View style={styles.pillRow}>
+            {RANGE_PILLS.map(({ key, label }) => {
+              const active = range === key;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => setRange(key)}
+                  style={[styles.pill, active && styles.pillActive]}
+                >
+                  <Text
+                    selectable={false}
+                    style={[styles.pillText, active && styles.pillTextActive]}
+                  >
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         {/* Custom date inputs */}
-        {range === 'custom' && (
+        {captureSection === undefined && range === 'custom' && (
           <View style={styles.customRow}>
             <TextInput
               style={styles.dateInput}
@@ -300,7 +348,7 @@ export default function InsightsScreen() {
           </View>
         )}
 
-        {settings.insightsShowPreview && (
+        {showPreview && (
           <>
             <Text style={styles.sectionLabel}>Preview</Text>
             <View style={styles.previewCard}>
@@ -330,7 +378,7 @@ export default function InsightsScreen() {
           </>
         )}
 
-        {settings.insightsShowActivity && (
+        {showActivity && (
           <>
             <Text style={styles.sectionLabel}>Activity</Text>
             <View style={styles.heatmapCard} onLayout={handleHeatmapCardLayout}>
@@ -348,7 +396,7 @@ export default function InsightsScreen() {
           </>
         )}
 
-        {settings.insightsShowStats && (
+        {showStats && (
           <>
             <Text style={styles.sectionLabel}>Stats</Text>
             <View style={styles.grid}>
@@ -374,6 +422,7 @@ const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.background },
     content: { padding: 24, paddingTop: 8, paddingBottom: 40 },
+    captureContent: { paddingTop: 16, paddingBottom: 16 },
 
     // Gear button
     gearBtn: {

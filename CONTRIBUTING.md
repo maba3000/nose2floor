@@ -15,15 +15,40 @@ In Expo CLI, press:
 
 ## Run commands
 
-| Command                  | Description                                 |
-| ------------------------ | ------------------------------------------- |
-| `npm start`              | Start Expo dev server (all platforms)       |
-| `npm run web`            | Start web target                            |
-| `npm run android`        | Start Android target                        |
-| `npm run ios`            | Start iOS target                            |
-| `npm run lint`           | Run ESLint                                  |
-| `npm test`               | Run Jest tests                              |
-| `npm run generate:icons` | Regenerate PNG icons from `assets/icon.svg` |
+| Command                        | Description                                                      |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `npm start`                    | Start Expo dev server (all platforms)                            |
+| `npm run web`                  | Start web target                                                 |
+| `npm run android`              | Start Android target                                             |
+| `npm run ios`                  | Start iOS target                                                 |
+| `npm run lint`                 | Run ESLint                                                       |
+| `npm test`                     | Run Jest tests                                                   |
+| `npm run generate:demo-data`   | Regenerate demo import dataset (`demo/demo-import.json`)         |
+| `npm run screenshots:insights` | Generate Insights screenshots for README (`assets/readme/*.png`) |
+| `npm run generate:icons`       | Regenerate PNG icons from `assets/icon.svg`                      |
+
+## Generate Insights screenshots
+
+```bash
+npm run screenshots:insights
+```
+
+This command will:
+
+1. regenerate demo data with daily growth over time,
+2. seed local storage for each Insights section variant,
+3. capture fresh screenshots for `Preview`, `Activity`, and `Stats`.
+
+Output files:
+
+- `assets/readme/insights-preview.png`
+- `assets/readme/insights-activity.png`
+- `assets/readme/insights-stats.png`
+
+Notes:
+
+- Uses headless Chrome by default.
+- If Chrome is in a custom location, set `CHROME_BIN=/path/to/chrome`.
 
 ## Code style
 
