@@ -97,7 +97,11 @@ function extractWebCoords(nativeEvent: GestureResponderEvent['nativeEvent']): Ex
   };
 
   // Real touch (mobile) — clientX/Y must be a valid number, not just truthy/non-zero
-  if (touch0 && typeof touch0.clientX === 'number' && (touch0.clientX !== 0 || touch0.clientY !== 0)) {
+  if (
+    touch0 &&
+    typeof touch0.clientX === 'number' &&
+    (touch0.clientX !== 0 || touch0.clientY !== 0)
+  ) {
     return { x: touch0.clientX, y: touch0.clientY ?? 0, source: 'dom-touch', candidates };
   }
 
@@ -142,7 +146,12 @@ type UseHitInputOptions = {
   triggerHit: () => void;
 };
 
-export function useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit }: UseHitInputOptions) {
+export function useHitInput({
+  layoutRef,
+  isActive,
+  sessionStartTime,
+  triggerHit,
+}: UseHitInputOptions) {
   const recordHit = useSessionStore((s) => s.recordHit);
   const settings = useSettingsStore((s) => s.settings);
   const { isAllowed: checkDebounce, reset: resetDebounce } = useDebounce(settings.hitCooldownMs);
@@ -187,7 +196,9 @@ export function useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit 
       if (!showDebug) return;
       setDebugTouches((prev) => {
         const next = [...prev, { id: ++debugTouchIdRef.current, x, y, kind }];
-        return next.length <= MAX_DEBUG_TOUCHES ? next : next.slice(next.length - MAX_DEBUG_TOUCHES);
+        return next.length <= MAX_DEBUG_TOUCHES
+          ? next
+          : next.slice(next.length - MAX_DEBUG_TOUCHES);
       });
     },
     [showDebug],
@@ -233,12 +244,22 @@ export function useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit 
     (e: GestureResponderEvent) => {
       if (activeTouchRef.current !== null) return;
 
-      const coords = Platform.OS === 'web'
-        ? extractWebCoords(e.nativeEvent)
-        : { ...readEventXY(e.nativeEvent), source: 'native' as const, candidates: {} };
+      const coords =
+        Platform.OS === 'web'
+          ? extractWebCoords(e.nativeEvent)
+          : { ...readEventXY(e.nativeEvent), source: 'native' as const, candidates: {} };
 
       if (showDebug) {
-        console.log('[hit] handlePress | source:', coords.source, '| x:', coords.x, 'y:', coords.y, '| candidates:', coords.candidates);
+        console.log(
+          '[hit] handlePress | source:',
+          coords.source,
+          '| x:',
+          coords.x,
+          'y:',
+          coords.y,
+          '| candidates:',
+          coords.candidates,
+        );
       }
 
       if (coords.source === 'none') return;
@@ -271,7 +292,16 @@ export function useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit 
         const coords = extractWebCoords(e.nativeEvent);
 
         if (showDebug) {
-          console.log('[hit] handleTouchStart | source:', coords.source, '| x:', coords.x, 'y:', coords.y, '| candidates:', coords.candidates);
+          console.log(
+            '[hit] handleTouchStart | source:',
+            coords.source,
+            '| x:',
+            coords.x,
+            'y:',
+            coords.y,
+            '| candidates:',
+            coords.candidates,
+          );
         }
 
         if (coords.source !== 'dom-touch') {
@@ -281,7 +311,14 @@ export function useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit 
 
         const { x, y } = coords;
         const now = Number(e.nativeEvent.timestamp ?? Date.now());
-        activeTouchRef.current = { startAt: now, startX: x, startY: y, lastMarkAt: now, lastX: x, lastY: y };
+        activeTouchRef.current = {
+          startAt: now,
+          startX: x,
+          startY: y,
+          lastMarkAt: now,
+          lastX: x,
+          lastY: y,
+        };
         incDebug('touches');
         const wasHit = processHit(x, y);
         addDebugMarker(x, y, wasHit ? 'hit' : 'blocked');
@@ -290,7 +327,14 @@ export function useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit 
 
       const { x, y } = readEventXY(e.nativeEvent);
       const now = Number(e.nativeEvent.timestamp ?? Date.now());
-      activeTouchRef.current = { startAt: now, startX: x, startY: y, lastMarkAt: now, lastX: x, lastY: y };
+      activeTouchRef.current = {
+        startAt: now,
+        startX: x,
+        startY: y,
+        lastMarkAt: now,
+        lastX: x,
+        lastY: y,
+      };
       incDebug('touches');
       const wasHit = processHit(x, y);
       addDebugMarker(x, y, wasHit ? 'hit' : 'blocked');

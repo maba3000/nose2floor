@@ -25,7 +25,9 @@ import type { Theme } from '@/theme';
 const DEFAULT_MAX_RADIUS = 190;
 
 function formatTime(s: number) {
-  return `${Math.floor(s / 60).toString().padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  return `${Math.floor(s / 60)
+    .toString()
+    .padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 export default function HomeScreen() {
@@ -73,8 +75,15 @@ export default function HomeScreen() {
 
   const { triggerHit, triggerStart, triggerStop } = useHaptics(settings.hapticsEnabled);
 
-  const { handlePress, handleTouchStart, handleTouchMove, handleTouchEnd, inputDebug, debugTouches, resetInputState } =
-    useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit });
+  const {
+    handlePress,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    inputDebug,
+    debugTouches,
+    resetInputState,
+  } = useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit });
 
   // ── Layout ────────────────────────────────────────────────────────────────
 
@@ -187,7 +196,14 @@ export default function HomeScreen() {
 
   // Auto-session: start a new session automatically when none is active
   useEffect(() => {
-    if (settings.sessionMode !== 'auto' || introVisible || autoStartBlockedRef.current || sessionIdRef.current || isActive) return;
+    if (
+      settings.sessionMode !== 'auto' ||
+      introVisible ||
+      autoStartBlockedRef.current ||
+      sessionIdRef.current ||
+      isActive
+    )
+      return;
     sessionStartTime.current = Date.now();
     sessionIdRef.current = uuid();
     startSession();
@@ -214,7 +230,16 @@ export default function HomeScreen() {
     if (!snapshot) return;
     upsertSession(snapshot);
     saveAutoSession(snapshot);
-  }, [settings.sessionMode, isActive, elapsedSeconds, reps, totalScore, hits, settings.bullseyeScale, upsertSession]);
+  }, [
+    settings.sessionMode,
+    isActive,
+    elapsedSeconds,
+    reps,
+    totalScore,
+    hits,
+    settings.bullseyeScale,
+    upsertSession,
+  ]);
 
   // ── Corner widget renderer ────────────────────────────────────────────────
 
@@ -226,7 +251,9 @@ export default function HomeScreen() {
         case 'points':
           return <CornerBadge label="PTS" value={`${totalScore}`} align={align} />;
         case 'timer':
-          return isActive ? <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} align={align} /> : null;
+          return isActive ? (
+            <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} align={align} />
+          ) : null;
         case 'goal':
           return (
             <CornerBadge
@@ -254,25 +281,42 @@ export default function HomeScreen() {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} onLayout={onLayout}>
+    <View
+      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
+      onLayout={onLayout}
+    >
       {introVisible && (
         <View style={styles.introOverlay} pointerEvents="box-none">
           <View style={styles.introBanner}>
-            <Text selectable={false} style={styles.introTitle}>Welcome</Text>
-            <Text selectable={false} style={styles.introBody}>
-              Place your phone on the floor near your face and do push-ups. Try to tap the bull&apos;s-eye with your nose to count a rep.
+            <Text selectable={false} style={styles.introTitle}>
+              Welcome
             </Text>
-            <Text selectable={false} style={styles.introBody}>"Hold to Start" to begin.</Text>
-            <Text selectable={false} style={styles.introBody}>"Hold for More" to personalise the experience.</Text>
+            <Text selectable={false} style={styles.introBody}>
+              Place your phone on the floor near your face and do push-ups. Try to tap the
+              bull&apos;s-eye with your nose to count a rep.
+            </Text>
+            <Text selectable={false} style={styles.introBody}>
+              "Hold to Start" to begin.
+            </Text>
+            <Text selectable={false} style={styles.introBody}>
+              "Hold for More" to personalise the experience.
+            </Text>
             <View style={styles.introActions}>
               <Pressable style={styles.introDismiss} onPress={() => setIntroVisible(false)}>
-                <Text selectable={false} style={styles.introDismissText}>Got it</Text>
+                <Text selectable={false} style={styles.introDismissText}>
+                  Got it
+                </Text>
               </Pressable>
               <Pressable
                 style={styles.introDismiss}
-                onPress={() => { updateSettings({ showIntro: false }); setIntroVisible(false); }}
+                onPress={() => {
+                  updateSettings({ showIntro: false });
+                  setIntroVisible(false);
+                }}
               >
-                <Text selectable={false} style={styles.introDismissText}>Don&apos;t show again</Text>
+                <Text selectable={false} style={styles.introDismissText}>
+                  Don&apos;t show again
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -306,7 +350,8 @@ export default function HomeScreen() {
         <View style={styles.debugBadge} pointerEvents="none">
           {/* T=Touches H=Hits B=Blocked M=Moves L=Long S=Scrolls */}
           <Text selectable={false} style={styles.debugLine}>
-            T {inputDebug.touches} · H {inputDebug.hits} · B {inputDebug.blocked} · M {inputDebug.moves} · L {inputDebug.long} · S {inputDebug.scrolls}
+            T {inputDebug.touches} · H {inputDebug.hits} · B {inputDebug.blocked} · M{' '}
+            {inputDebug.moves} · L {inputDebug.long} · S {inputDebug.scrolls}
           </Text>
         </View>
       )}
@@ -397,7 +442,13 @@ const createStyles = (theme: Theme) =>
     cornerTopRight: { position: 'absolute', top: 16, right: 16 },
     cornerBottomLeft: { position: 'absolute', bottom: 16, left: 16 },
     cornerBottomRight: { position: 'absolute', bottom: 16, right: 16 },
-    introOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 5, alignItems: 'center', paddingHorizontal: 24, paddingTop: 24 },
+    introOverlay: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: 5,
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingTop: 24,
+    },
     introBanner: {
       width: '100%',
       maxWidth: 420,
