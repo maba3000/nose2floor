@@ -14,7 +14,7 @@ const THEME_OPTIONS = [
 ] as const;
 const DAILY_GOAL_PRESETS = [25, 50, 75, 100, 150] as const;
 
-const CORNER_OPTIONS: CornerWidget[] = ['none', 'hits', 'points', 'timer', 'goal'];
+const ALL_CORNER_OPTIONS: CornerWidget[] = ['none', 'hits', 'points', 'timer', 'goal'];
 const CORNER_POSITIONS = [
   ['topLeft', 'Top-left'],
   ['topRight', 'Top-right'],
@@ -30,6 +30,9 @@ export default function SettingsScreen() {
 
   const hideAfterSeconds = Math.round(settings.hitMarkerAutoHideMs / 1000);
   const introDisabled = settings.sessionMode === 'auto';
+  const cornerOptions = settings.pointsEnabled
+    ? ALL_CORNER_OPTIONS
+    : ALL_CORNER_OPTIONS.filter((w) => w !== 'points');
 
   return (
     <View style={styles.container}>
@@ -70,6 +73,21 @@ export default function SettingsScreen() {
                 onValueChange={(value) => updateSettings({ hapticsEnabled: value })}
               />
             </View>
+          </View>
+
+          <View style={[styles.cardBlock, styles.cardBlockBorder]}>
+            <View style={styles.row}>
+              <Text selectable={false} style={styles.rowLabel}>
+                Points
+              </Text>
+              <Switch
+                value={settings.pointsEnabled}
+                onValueChange={(value) => updateSettings({ pointsEnabled: value })}
+              />
+            </View>
+            <Text selectable={false} style={styles.helpText}>
+              When off, all point scores are hidden everywhere.
+            </Text>
           </View>
 
           <View style={[styles.cardBlock, styles.cardBlockBorder]}>
@@ -230,7 +248,7 @@ export default function SettingsScreen() {
                     {label}
                   </Text>
                   <View style={styles.cornerPills}>
-                    {CORNER_OPTIONS.map((widget) => {
+                    {cornerOptions.map((widget) => {
                       const active = settings.corners[corner] === widget;
                       const widgetLabel = widget.charAt(0).toUpperCase() + widget.slice(1);
                       return (

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Pressable, Platform, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { AppDialog } from '@/components/AppDialog';
 import type { WorkoutSession } from '@/domain/entities';
@@ -12,6 +13,7 @@ import type { Theme } from '@/theme';
 export default function HistoryScreen() {
   const router = useRouter();
   const history = useHistoryStore((s) => s.history);
+  const pointsEnabled = useSettingsStore((s) => s.settings.pointsEnabled);
   const deleteSession = useHistoryStore((s) => s.deleteSession);
   const addSession = useHistoryStore((s) => s.addSession);
   const upsertSession = useHistoryStore((s) => s.upsertSession);
@@ -127,7 +129,8 @@ export default function HistoryScreen() {
                   {new Date(item.startedAt).toLocaleString()}
                 </Text>
                 <Text selectable={false} style={styles.sessionStats}>
-                  Hits: {item.reps} · Points: {item.totalScore}
+                  Hits: {item.reps}
+                  {pointsEnabled ? ` · Points: ${item.totalScore}` : ''}
                 </Text>
               </View>
 

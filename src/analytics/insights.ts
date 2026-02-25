@@ -57,22 +57,34 @@ export function filterByRange(
   return history.filter((s) => s.startedAt >= startMs && s.startedAt <= endMs);
 }
 
-export function buildInsights(history: WorkoutSession[]): InsightStat[] {
+export function buildInsights(
+  history: WorkoutSession[],
+  options?: { pointsEnabled?: boolean },
+): InsightStat[] {
+  const pointsEnabled = options?.pointsEnabled ?? true;
   const sessions = history.length;
   const totalHits = history.reduce((sum, s) => sum + s.reps, 0);
-  const totalPoints = history.reduce((sum, s) => sum + s.totalScore, 0);
   const bestHits = history.reduce((max, s) => Math.max(max, s.reps), 0);
-  const bestPoints = history.reduce((max, s) => Math.max(max, s.totalScore), 0);
   const avgHits = sessions === 0 ? 0 : Math.round(totalHits / sessions);
   const totalSeconds = history.reduce((sum, s) => sum + s.durationSeconds, 0);
 
-  return [
+  const stats: InsightStat[] = [
     { label: 'Sessions', value: String(sessions) },
     { label: 'Total Hits', value: String(totalHits) },
-    { label: 'Total Points', value: String(totalPoints) },
-    { label: 'Best Hits', value: String(bestHits) },
-    { label: 'Best Points', value: String(bestPoints) },
-    { label: 'Avg Hits', value: String(avgHits) },
-    { label: 'Total Time', value: formatDuration(totalSeconds) },
   ];
+
+  if (pointsEnabled) {
+    const totalPoints = history.reduce((sum, s) => sum + s.totalScore, 0);
+    const bestPoints = history.reduce((max, s) => Math.max(max, s.totalScore), 0);
+    stats.push({ label: 'Total Points', value: String(totalPoints) });
+    stats.push({ label: 'Best Hits', value: String(bestHits) });
+    stats.push({ label: 'Best Points', value: String(bestPoints) });
+  } else {
+    stats.push({ label: 'Best Hits', value: String(bestHits) });
+  }
+
+  stats.push({ label: 'Avg Hits', value: String(avgHits) });
+  stats.push({ label: 'Total Time', value: formatDuration(totalSeconds) });
+
+  return stats;
 }

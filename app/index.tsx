@@ -249,7 +249,9 @@ export default function HomeScreen() {
         case 'hits':
           return <CornerBadge label={isActive ? 'HITS' : 'DEMO'} value={`${reps}`} align={align} />;
         case 'points':
-          return <CornerBadge label="PTS" value={`${totalScore}`} align={align} />;
+          return settings.pointsEnabled ? (
+            <CornerBadge label="PTS" value={`${totalScore}`} align={align} />
+          ) : null;
         case 'timer':
           return isActive ? (
             <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} align={align} />
@@ -275,7 +277,7 @@ export default function HomeScreen() {
           return null;
       }
     },
-    [isActive, reps, totalScore, elapsedSeconds, remainingGoal],
+    [isActive, reps, totalScore, elapsedSeconds, remainingGoal, settings.pointsEnabled],
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -343,7 +345,12 @@ export default function HomeScreen() {
       )}
 
       {markerVisible && lastTap && (
-        <HitMarkerOverlay x={lastTap.x} y={lastTap.y} score={lastTap.score} showScore={true} />
+        <HitMarkerOverlay
+          x={lastTap.x}
+          y={lastTap.y}
+          score={lastTap.score}
+          showScore={settings.pointsEnabled}
+        />
       )}
 
       {settings.showInputDebug && (

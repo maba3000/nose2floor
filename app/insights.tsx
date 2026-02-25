@@ -148,7 +148,10 @@ export default function InsightsScreen() {
     [filtered],
   );
 
-  const stats = useMemo(() => buildInsights(filtered), [filtered]);
+  const stats = useMemo(
+    () => buildInsights(filtered, { pointsEnabled: settings.pointsEnabled }),
+    [filtered, settings.pointsEnabled],
+  );
   const rangeLabel = useMemo(
     () => `${toDisplayDate(startMs)} - ${toDisplayDate(endMs)}`,
     [startMs, endMs],
@@ -362,7 +365,8 @@ export default function InsightsScreen() {
               ) : (
                 <>
                   <Text selectable={false} style={styles.previewHint}>
-                    Sessions: {filtered.length} · Hits: {combinedReps} · Points: {combinedPoints}
+                    Sessions: {filtered.length} · Hits: {combinedReps}
+                    {settings.pointsEnabled ? ` · Points: ${combinedPoints}` : ''}
                   </Text>
                   <View style={styles.previewCanvasWrap}>
                     <HitMapCanvas size={previewMapSize} scale={1} hits={combinedHits} />

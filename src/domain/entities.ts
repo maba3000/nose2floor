@@ -37,6 +37,7 @@ export interface AppSettings {
   showHitMarkers: boolean;
   hitMarkerAutoHideMs: number;
   showInputDebug: boolean;
+  pointsEnabled: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -58,4 +59,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
   showHitMarkers: true,
   hitMarkerAutoHideMs: 3000,
   showInputDebug: false,
+  pointsEnabled: true,
 };

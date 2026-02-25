@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useHistoryStore } from '@/store/historyStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { HitMapCanvas } from '@/components/HitMapCanvas';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { useTheme } from '@/hooks/useTheme';
@@ -10,6 +11,7 @@ import type { Theme } from '@/theme';
 export default function SessionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const session = useHistoryStore((s) => s.history.find((h) => h.id === id));
+  const pointsEnabled = useSettingsStore((s) => s.settings.pointsEnabled);
   const theme = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -58,7 +60,7 @@ export default function SessionDetailScreen() {
 
       <View style={styles.statsRow}>
         <Stat label="HITS" value={`${session.reps}`} />
-        <Stat label="PTS" value={`${session.totalScore}`} />
+        {pointsEnabled && <Stat label="PTS" value={`${session.totalScore}`} />}
         <Stat label="TIME" value={`${mins}m ${secs}s`} />
       </View>
 
