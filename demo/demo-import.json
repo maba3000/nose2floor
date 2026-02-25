@@ -13,12 +13,7 @@
       "bottomLeft": "goal"
     },
     "dailyGoal": 100,
-    "heatmapThresholds": [
-      1,
-      20,
-      60,
-      120
-    ],
+    "heatmapThresholds": [1, 20, 60, 120],
     "heatmapShowGoalStar": true,
     "heatmapShowHitCount": false,
     "insightsShowPreview": true,
