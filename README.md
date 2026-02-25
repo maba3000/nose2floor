@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/icon-192.png" alt="Nose2Floor icon" width="96" height="96" />
+  <img src="assets/icon-512.png" alt="Nose2Floor icon" width="160" height="160" />
 </p>
 
 <h1 align="center">Nose2Floor</h1>

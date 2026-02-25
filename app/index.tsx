@@ -2,90 +2,37 @@ import 'react-native-get-random-values';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, LayoutChangeEvent, Pressable, Platform } from 'react-native';
-import type { GestureResponderEvent } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { v4 as uuid } from 'uuid';
-import * as Haptics from 'expo-haptics';
 
 import { useSessionStore } from '@/store/sessionStore';
 import { useHistoryStore } from '@/store/historyStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useTimer } from '@/hooks/useTimer';
-import { useDebounce } from '@/hooks/useDebounce';
-import { computeDistance, computeScore } from '@/domain/scoring';
+import { useHaptics } from '@/hooks/useHaptics';
+import { useHitInput } from '@/hooks/useHitInput';
 import { buildAutoSessionSnapshot } from '@/domain/autoSession';
 import { BullseyeCanvas } from '@/components/BullseyeCanvas';
 import { HoldButton } from '@/components/HoldButton';
 import { HitMarkerOverlay } from '@/components/HitMarkerOverlay';
 import { CornerBadge } from '@/components/CornerBadge';
-import type { Hit, CornerWidget } from '@/domain/entities';
+import type { CornerWidget } from '@/domain/entities';
 import { clearAutoSession, loadAutoSession, saveAutoSession } from '@/persistence/storage';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
 const DEFAULT_MAX_RADIUS = 190;
-const INPUT_EVENT_DEDUPE_MS = 30;
-const MOVE_SAMPLE_MS = 40;
-const MOVE_MIN_DISTANCE = 6;
-const DEBUG_LONG_TOUCH_MS = 350;
-const DEBUG_SCROLL_DISTANCE = 20;
 
-// On web (iPhone Safari), touch events are DOM TouchEvents — they have changedTouches/touches
-// with clientX/clientY, not locationX/locationY or offsetX/offsetY.
-function readEventXY(nativeEvent: GestureResponderEvent['nativeEvent']) {
-  const ev = nativeEvent as typeof nativeEvent & {
-    offsetX?: number;
-    offsetY?: number;
-    clientX?: number;
-    clientY?: number;
-    changedTouches?: ArrayLike<{ clientX: number; clientY: number }>;
-    touches?: ArrayLike<{ clientX: number; clientY: number }>;
-  };
-  if (Platform.OS === 'web') {
-    const touchList = ev.changedTouches ?? ev.touches;
-    if (touchList && touchList.length > 0) {
-      return { x: touchList[0].clientX, y: touchList[0].clientY };
-    }
-    // Mouse click fallback
-    if (typeof ev.clientX === 'number') return { x: ev.clientX, y: ev.clientY ?? 0 };
-    if (typeof ev.offsetX === 'number') return { x: ev.offsetX, y: ev.offsetY ?? 0 };
-    return { x: 0, y: 0 };
-  }
-  const x = typeof ev.locationX === 'number' ? ev.locationX : (ev.offsetX ?? 0);
-  const y = typeof ev.locationY === 'number' ? ev.locationY : (ev.offsetY ?? 0);
-  return { x, y };
+function formatTime(s: number) {
+  return `${Math.floor(s / 60).toString().padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
-
-type InputDebugStats = {
-  touches: number;
-  hits: number;
-  blocked: number;
-  moves: number;
-  long: number;
-  scrolls: number;
-};
-
-type DebugTouchMarker = {
-  id: number;
-  x: number;
-  y: number;
-  kind: 'hit' | 'blocked' | 'move' | 'scroll';
-};
-
-const EMPTY_INPUT_DEBUG: InputDebugStats = {
-  touches: 0,
-  hits: 0,
-  blocked: 0,
-  moves: 0,
-  long: 0,
-  scrolls: 0,
-};
-const MAX_DEBUG_TOUCHES = 250;
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // ── Store subscriptions ───────────────────────────────────────────────────
 
   const isActive = useSessionStore((s) => s.isActive);
   const reps = useSessionStore((s) => s.reps);
@@ -93,7 +40,6 @@ export default function HomeScreen() {
   const elapsedSeconds = useSessionStore((s) => s.elapsedSeconds);
   const hits = useSessionStore((s) => s.hits);
   const startSession = useSessionStore((s) => s.startSession);
-  const recordHit = useSessionStore((s) => s.recordHit);
   const loadSession = useSessionStore((s) => s.loadSession);
   const reset = useSessionStore((s) => s.reset);
   const lastTap = useSessionStore((s) => s.lastTap);
@@ -101,87 +47,36 @@ export default function HomeScreen() {
   const history = useHistoryStore((s) => s.history);
   const addSession = useHistoryStore((s) => s.addSession);
   const upsertSession = useHistoryStore((s) => s.upsertSession);
+
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
+
   const theme = useTheme();
+
+  // ── Refs ──────────────────────────────────────────────────────────────────
 
   const sessionStartTime = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
   const autoStartBlockedRef = useRef(false);
   const layoutRef = useRef<{ cx: number; cy: number; maxRadius: number } | null>(null);
-  const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({
-    width: 0,
-    height: 0,
-  });
+
+  // ── Local state ───────────────────────────────────────────────────────────
+
+  const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const [introVisible, setIntroVisible] = useState(false);
-  const [inputDebug, setInputDebug] = useState<InputDebugStats>(EMPTY_INPUT_DEBUG);
-  const [debugTouches, setDebugTouches] = useState<DebugTouchMarker[]>([]);
-  const lastInputEventRef = useRef<{ at: number; x: number; y: number } | null>(null);
-  const activeTouchRef = useRef<{
-    startAt: number;
-    startX: number;
-    startY: number;
-    lastMarkAt: number;
-    lastX: number;
-    lastY: number;
-  } | null>(null);
-  const debugTouchIdRef = useRef(0);
+  const [markerVisible, setMarkerVisible] = useState(false);
 
   useTimer();
-
   const styles = useMemo(() => createStyles(theme), [theme]);
 
-  const { isAllowed: checkDebounce, reset: resetHitDebounce } = useDebounce(settings.hitCooldownMs);
+  // ── Hooks ─────────────────────────────────────────────────────────────────
 
-  const resetInputDebug = useCallback(() => {
-    lastInputEventRef.current = null;
-    activeTouchRef.current = null;
-    setInputDebug(EMPTY_INPUT_DEBUG);
-    setDebugTouches([]);
-  }, []);
+  const { triggerHit, triggerStart, triggerStop } = useHaptics(settings.hapticsEnabled);
 
-  const incrementInputDebug = useCallback(
-    (key: keyof InputDebugStats) => {
-      if (!settings.showInputDebug) return;
-      setInputDebug((prev) => ({ ...prev, [key]: prev[key] + 1 }));
-    },
-    [settings.showInputDebug],
-  );
+  const { handlePress, handleTouchStart, handleTouchMove, handleTouchEnd, inputDebug, debugTouches, resetInputState } =
+    useHitInput({ layoutRef, isActive, sessionStartTime, triggerHit });
 
-  const addDebugTouch = useCallback(
-    (x: number, y: number, kind: DebugTouchMarker['kind']) => {
-      if (!settings.showInputDebug) return;
-      setDebugTouches((prev) => {
-        const next = [
-          ...prev,
-          {
-            id: ++debugTouchIdRef.current,
-            x,
-            y,
-            kind,
-          },
-        ];
-        if (next.length <= MAX_DEBUG_TOUCHES) return next;
-        return next.slice(next.length - MAX_DEBUG_TOUCHES);
-      });
-    },
-    [settings.showInputDebug],
-  );
-
-  const triggerHitHaptic = useCallback(() => {
-    if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-  }, [settings.hapticsEnabled]);
-
-  const triggerStartHaptic = useCallback(() => {
-    if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-  }, [settings.hapticsEnabled]);
-
-  const triggerStopHaptic = useCallback(() => {
-    if (Platform.OS === 'web' || !settings.hapticsEnabled) return;
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-  }, [settings.hapticsEnabled]);
+  // ── Layout ────────────────────────────────────────────────────────────────
 
   const onLayout = useCallback(
     (e: LayoutChangeEvent) => {
@@ -196,167 +91,32 @@ export default function HomeScreen() {
     [settings.bullseyeScale],
   );
 
-  const handleTap = useCallback(
-    (tapX: number, tapY: number): boolean => {
-      if (!checkDebounce()) {
-        incrementInputDebug('blocked');
-        return false;
-      }
-      const layout = layoutRef.current;
-      if (!layout) return false;
-
-      const distance = computeDistance(tapX, tapY, layout.cx, layout.cy, layout.maxRadius);
-      const score = computeScore(distance);
-      const dx = (tapX - layout.cx) / layout.maxRadius;
-      const dy = (tapY - layout.cy) / layout.maxRadius;
-      const now = Date.now();
-
-      const hit: Hit = {
-        dx,
-        dy,
-        distance,
-        score,
-        timestamp: isActive ? now - sessionStartTime.current : 0,
-      };
-
-      const tap = { x: tapX, y: tapY, score, at: now };
-
-      recordHit(hit, tap, isActive);
-      incrementInputDebug('hits');
-      triggerHitHaptic();
-      return true;
-    },
-    [checkDebounce, incrementInputDebug, isActive, recordHit, triggerHitHaptic],
-  );
-
-  const handlePress = useCallback(
-    (e: GestureResponderEvent) => {
-      // Touch events are handled by onTouchEnd; this is only for mouse clicks on web
-      if (activeTouchRef.current !== null) return;
-      const nativeEvent = e.nativeEvent;
-      const { x: tapX, y: tapY } = readEventXY(nativeEvent);
-      if (Platform.OS === 'web' && tapX === 0 && tapY === 0) {
-        return;
-      }
-      const eventTime = Number(nativeEvent.timestamp ?? Date.now());
-      const last = lastInputEventRef.current;
-      if (
-        last &&
-        Math.abs(eventTime - last.at) <= INPUT_EVENT_DEDUPE_MS &&
-        Math.abs(tapX - last.x) < 1 &&
-        Math.abs(tapY - last.y) < 1
-      ) {
-        return;
-      }
-      lastInputEventRef.current = { at: eventTime, x: tapX, y: tapY };
-      incrementInputDebug('touches');
-      const wasHit = handleTap(tapX, tapY);
-      addDebugTouch(tapX, tapY, wasHit ? 'hit' : 'blocked');
-    },
-    [addDebugTouch, handleTap, incrementInputDebug],
-  );
-
-  const handleTouchStart = useCallback(
-    (e: GestureResponderEvent) => {
-      if (Platform.OS === 'web') {
-        e.preventDefault();
-      }
-      const nativeEvent = e.nativeEvent;
-      const { x, y } = readEventXY(nativeEvent);
-      const now = Number(nativeEvent.timestamp ?? Date.now());
-      activeTouchRef.current = {
-        startAt: now,
-        startX: x,
-        startY: y,
-        lastMarkAt: now,
-        lastX: x,
-        lastY: y,
-      };
-      incrementInputDebug('touches');
-      const wasHit = handleTap(x, y);
-      addDebugTouch(x, y, wasHit ? 'hit' : 'blocked');
-    },
-    [addDebugTouch, handleTap, incrementInputDebug],
-  );
-
-  const handleTouchMove = useCallback(
-    (e: GestureResponderEvent) => {
-      const active = activeTouchRef.current;
-      if (!active) return;
-
-      const nativeEvent = e.nativeEvent;
-      const { x, y } = readEventXY(nativeEvent);
-      const now = Number(nativeEvent.timestamp ?? Date.now());
-
-      const distanceSinceLast = Math.hypot(x - active.lastX, y - active.lastY);
-      const elapsedSinceLast = now - active.lastMarkAt;
-      if (distanceSinceLast < MOVE_MIN_DISTANCE && elapsedSinceLast < MOVE_SAMPLE_MS) {
-        return;
-      }
-
-      active.lastX = x;
-      active.lastY = y;
-      active.lastMarkAt = now;
-      incrementInputDebug('moves');
-      // Do not register hits during move/scroll — a hit is only recorded on touchstart.
-      addDebugTouch(x, y, 'move');
-    },
-    [addDebugTouch, incrementInputDebug],
-  );
-
-  const handleTouchEnd = useCallback(
-    (e: GestureResponderEvent) => {
-      const active = activeTouchRef.current;
-      activeTouchRef.current = null;
-      if (!settings.showInputDebug || !active) return;
-
-      const nativeEvent = e.nativeEvent;
-      const { x, y } = readEventXY(nativeEvent);
-      const now = Number(nativeEvent.timestamp ?? Date.now());
-
-      const duration = now - active.startAt;
-      const totalDistance = Math.hypot(x - active.startX, y - active.startY);
-
-      if (duration >= DEBUG_LONG_TOUCH_MS) {
-        incrementInputDebug('long');
-      }
-      if (totalDistance >= DEBUG_SCROLL_DISTANCE) {
-        incrementInputDebug('scrolls');
-        addDebugTouch(x, y, 'scroll');
-      }
-    },
-    [addDebugTouch, incrementInputDebug, settings.showInputDebug],
-  );
+  // ── Session control ───────────────────────────────────────────────────────
 
   const handleStartSession = useCallback(() => {
-    resetHitDebounce();
-    resetInputDebug();
+    resetInputState();
     sessionStartTime.current = Date.now();
     sessionIdRef.current = uuid();
     startSession();
-    triggerStartHaptic();
-  }, [resetHitDebounce, resetInputDebug, startSession, triggerStartHaptic]);
+    triggerStart();
+  }, [resetInputState, startSession, triggerStart]);
 
   const handleStopSession = useCallback(() => {
-    resetHitDebounce();
-    resetInputDebug();
+    resetInputState();
     if (settings.sessionMode === 'auto') {
       autoStartBlockedRef.current = true;
     }
     if (reps === 0) {
-      if (settings.sessionMode === 'auto') {
-        clearAutoSession();
-      }
+      if (settings.sessionMode === 'auto') clearAutoSession();
       sessionIdRef.current = null;
       reset();
-      triggerStopHaptic();
+      triggerStop();
       return;
     }
     const id = sessionIdRef.current ?? uuid();
-    const startedAt = sessionStartTime.current || Date.now();
     const session = {
       id,
-      startedAt,
+      startedAt: sessionStartTime.current || Date.now(),
       durationSeconds: elapsedSeconds,
       reps,
       totalScore,
@@ -371,36 +131,92 @@ export default function HomeScreen() {
     }
     sessionIdRef.current = null;
     reset();
-    triggerStopHaptic();
+    triggerStop();
   }, [
     addSession,
-    upsertSession,
     elapsedSeconds,
-    reps,
-    totalScore,
     hits,
+    reps,
+    reset,
+    resetInputState,
     settings.bullseyeScale,
     settings.sessionMode,
-    reset,
-    resetHitDebounce,
-    resetInputDebug,
-    triggerStopHaptic,
+    totalScore,
+    triggerStop,
+    upsertSession,
   ]);
 
-  const formatTime = (s: number) =>
-    `${Math.floor(s / 60)
-      .toString()
-      .padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  // ── Computed values ───────────────────────────────────────────────────────
 
   const remainingGoal = useMemo(() => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const start = todayStart.getTime();
     const historyRepsToday = history
-      .filter((s) => s.startedAt >= start && s.id !== sessionIdRef.current)
+      .filter((s) => s.startedAt >= todayStart.getTime() && s.id !== sessionIdRef.current)
       .reduce((acc, s) => acc + s.reps, 0);
     return settings.dailyGoal - historyRepsToday - reps;
   }, [history, settings.dailyGoal, reps]);
+
+  // ── Effects ───────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    setMarkerVisible(!!settings.showHitMarkers && !!lastTap);
+    if (!settings.showHitMarkers || !lastTap || settings.hitMarkerAutoHideMs === 0) return;
+    const id = setTimeout(() => setMarkerVisible(false), settings.hitMarkerAutoHideMs);
+    return () => clearTimeout(id);
+  }, [lastTap, settings.showHitMarkers, settings.hitMarkerAutoHideMs]);
+
+  useEffect(() => {
+    setIntroVisible(settings.showIntro);
+  }, [settings.showIntro]);
+
+  // Auto-session: restore a saved in-progress session on mount
+  useEffect(() => {
+    if (settings.sessionMode !== 'auto' || introVisible || isActive) return;
+    const session = loadAutoSession();
+    if (!session || session.reps === 0) return;
+    sessionStartTime.current = session.startedAt;
+    sessionIdRef.current = session.id;
+    loadSession(session);
+  }, [settings.sessionMode, introVisible, isActive, loadSession]);
+
+  // Auto-session: unblock auto-start when mode is toggled back to auto
+  useEffect(() => {
+    if (settings.sessionMode === 'auto') autoStartBlockedRef.current = false;
+  }, [settings.sessionMode]);
+
+  // Auto-session: start a new session automatically when none is active
+  useEffect(() => {
+    if (settings.sessionMode !== 'auto' || introVisible || autoStartBlockedRef.current || sessionIdRef.current || isActive) return;
+    sessionStartTime.current = Date.now();
+    sessionIdRef.current = uuid();
+    startSession();
+  }, [settings.sessionMode, introVisible, isActive, startSession]);
+
+  // Auto-session: persist snapshot on every rep so progress survives app closure
+  useEffect(() => {
+    if (settings.sessionMode !== 'auto' || !isActive) return;
+    if (!sessionIdRef.current) {
+      sessionIdRef.current = uuid();
+      if (!sessionStartTime.current) sessionStartTime.current = Date.now();
+    }
+    const snapshot = buildAutoSessionSnapshot({
+      sessionMode: settings.sessionMode,
+      isActive,
+      id: sessionIdRef.current,
+      startedAt: sessionStartTime.current || Date.now(),
+      durationSeconds: elapsedSeconds,
+      reps,
+      totalScore,
+      hits,
+      bullseyeScale: settings.bullseyeScale,
+    });
+    if (!snapshot) return;
+    upsertSession(snapshot);
+    saveAutoSession(snapshot);
+  }, [settings.sessionMode, isActive, elapsedSeconds, reps, totalScore, hits, settings.bullseyeScale, upsertSession]);
+
+  // ── Corner widget renderer ────────────────────────────────────────────────
 
   const renderCornerWidget = useCallback(
     (widget: CornerWidget, align: 'flex-start' | 'flex-end') => {
@@ -410,9 +226,7 @@ export default function HomeScreen() {
         case 'points':
           return <CornerBadge label="PTS" value={`${totalScore}`} align={align} />;
         case 'timer':
-          return isActive ? (
-            <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} align={align} />
-          ) : null;
+          return isActive ? <CornerBadge label="TIME" value={formatTime(elapsedSeconds)} align={align} /> : null;
         case 'goal':
           return (
             <CornerBadge
@@ -437,130 +251,34 @@ export default function HomeScreen() {
     [isActive, reps, totalScore, elapsedSeconds, remainingGoal],
   );
 
-  const [markerVisible, setMarkerVisible] = useState(false);
-  useEffect(() => {
-    if (!settings.showHitMarkers || !lastTap) {
-      setMarkerVisible(false);
-      return;
-    }
-    setMarkerVisible(true);
-    if (settings.hitMarkerAutoHideMs === 0) return;
-    const id = setTimeout(() => setMarkerVisible(false), settings.hitMarkerAutoHideMs);
-    return () => clearTimeout(id);
-  }, [lastTap, settings.showHitMarkers, settings.hitMarkerAutoHideMs]);
-
-  useEffect(() => {
-    setIntroVisible(settings.showIntro);
-  }, [settings.showIntro]);
-
-  useEffect(() => {
-    if (!settings.showInputDebug) return;
-    resetInputDebug();
-  }, [settings.showInputDebug, resetInputDebug]);
-
-  useEffect(() => {
-    if (settings.sessionMode !== 'auto') return;
-    if (introVisible) return;
-    if (isActive) return;
-    const session = loadAutoSession();
-    if (!session || session.reps === 0) return;
-    sessionStartTime.current = session.startedAt;
-    sessionIdRef.current = session.id;
-    loadSession(session);
-  }, [settings.sessionMode, introVisible, isActive, loadSession]);
-
-  useEffect(() => {
-    if (settings.sessionMode === 'auto') {
-      autoStartBlockedRef.current = false;
-    }
-  }, [settings.sessionMode]);
-
-  useEffect(() => {
-    if (settings.sessionMode !== 'auto') return;
-    if (introVisible) return;
-    if (autoStartBlockedRef.current) return;
-    if (sessionIdRef.current) return;
-    if (!isActive) {
-      sessionStartTime.current = Date.now();
-      sessionIdRef.current = uuid();
-      startSession();
-    }
-  }, [settings.sessionMode, introVisible, isActive, startSession]);
-
-  useEffect(() => {
-    if (settings.sessionMode !== 'auto') return;
-    if (!isActive) return;
-    if (!sessionIdRef.current) {
-      sessionIdRef.current = uuid();
-      if (!sessionStartTime.current) sessionStartTime.current = Date.now();
-    }
-    const snapshot = buildAutoSessionSnapshot({
-      sessionMode: settings.sessionMode,
-      isActive,
-      id: sessionIdRef.current,
-      startedAt: sessionStartTime.current || Date.now(),
-      durationSeconds: elapsedSeconds,
-      reps,
-      totalScore,
-      hits,
-      bullseyeScale: settings.bullseyeScale,
-    });
-    if (!snapshot) return;
-    upsertSession(snapshot);
-    saveAutoSession(snapshot);
-  }, [
-    settings.sessionMode,
-    isActive,
-    elapsedSeconds,
-    reps,
-    totalScore,
-    hits,
-    settings.bullseyeScale,
-    upsertSession,
-  ]);
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <View
-      style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}
-      onLayout={onLayout}
-    >
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]} onLayout={onLayout}>
       {introVisible && (
         <View style={styles.introOverlay} pointerEvents="box-none">
           <View style={styles.introBanner}>
-            <Text selectable={false} style={styles.introTitle}>
-              Welcome
-            </Text>
+            <Text selectable={false} style={styles.introTitle}>Welcome</Text>
             <Text selectable={false} style={styles.introBody}>
-              Place your phone on the floor near your face and do push-ups. Try to tap the
-              bull&apos;s-eye with your nose to count a rep.
+              Place your phone on the floor near your face and do push-ups. Try to tap the bull&apos;s-eye with your nose to count a rep.
             </Text>
-            <Text selectable={false} style={styles.introBody}>
-              “Hold to Start” to begin.
-            </Text>
-            <Text selectable={false} style={styles.introBody}>
-              “Hold for More” to personalise the experience.
-            </Text>
+            <Text selectable={false} style={styles.introBody}>"Hold to Start" to begin.</Text>
+            <Text selectable={false} style={styles.introBody}>"Hold for More" to personalise the experience.</Text>
             <View style={styles.introActions}>
               <Pressable style={styles.introDismiss} onPress={() => setIntroVisible(false)}>
-                <Text selectable={false} style={styles.introDismissText}>
-                  Got it
-                </Text>
+                <Text selectable={false} style={styles.introDismissText}>Got it</Text>
               </Pressable>
               <Pressable
                 style={styles.introDismiss}
-                onPress={() => {
-                  updateSettings({ showIntro: false });
-                  setIntroVisible(false);
-                }}
+                onPress={() => { updateSettings({ showIntro: false }); setIntroVisible(false); }}
               >
-                <Text selectable={false} style={styles.introDismissText}>
-                  Don&apos;t show again
-                </Text>
+                <Text selectable={false} style={styles.introDismissText}>Don&apos;t show again</Text>
               </Pressable>
             </View>
           </View>
         </View>
       )}
+
       <Pressable
         onPressIn={Platform.OS === 'web' ? handlePress : undefined}
         onTouchStart={handleTouchStart}
@@ -569,6 +287,7 @@ export default function HomeScreen() {
         style={styles.tapLayer}
         pointerEvents="box-only"
       />
+
       {settings.showBullseye && canvasSize.width > 0 && (
         <View style={[StyleSheet.absoluteFill, styles.canvasWrapper]} pointerEvents="none">
           <BullseyeCanvas
@@ -587,11 +306,11 @@ export default function HomeScreen() {
         <View style={styles.debugBadge} pointerEvents="none">
           {/* T=Touches H=Hits B=Blocked M=Moves L=Long S=Scrolls */}
           <Text selectable={false} style={styles.debugLine}>
-            T {inputDebug.touches} · H {inputDebug.hits} · B {inputDebug.blocked} · M{' '}
-            {inputDebug.moves} · L {inputDebug.long} · S {inputDebug.scrolls}
+            T {inputDebug.touches} · H {inputDebug.hits} · B {inputDebug.blocked} · M {inputDebug.moves} · L {inputDebug.long} · S {inputDebug.scrolls}
           </Text>
         </View>
       )}
+
       {settings.showInputDebug && (
         <View style={StyleSheet.absoluteFill} pointerEvents="none">
           {debugTouches.map((marker) => (
@@ -669,40 +388,16 @@ const createStyles = (theme: Theme) =>
       paddingVertical: 3,
     },
     debugLine: { fontSize: 11, color: theme.text },
-    debugTouch: {
-      position: 'absolute',
-      width: 8,
-      height: 8,
-      borderRadius: 999,
-      borderWidth: 1,
-    },
-    debugTouchHit: {
-      backgroundColor: '#2E7D32',
-      borderColor: 'rgba(255,255,255,0.8)',
-    },
-    debugTouchBlocked: {
-      backgroundColor: '#FF8F00',
-      borderColor: 'rgba(255,255,255,0.8)',
-    },
-    debugTouchMove: {
-      backgroundColor: '#0288D1',
-      borderColor: 'rgba(255,255,255,0.8)',
-    },
-    debugTouchScroll: {
-      backgroundColor: '#7B1FA2',
-      borderColor: 'rgba(255,255,255,0.9)',
-    },
+    debugTouch: { position: 'absolute', width: 8, height: 8, borderRadius: 999, borderWidth: 1 },
+    debugTouchHit: { backgroundColor: '#2E7D32', borderColor: 'rgba(255,255,255,0.8)' },
+    debugTouchBlocked: { backgroundColor: '#FF8F00', borderColor: 'rgba(255,255,255,0.8)' },
+    debugTouchMove: { backgroundColor: '#0288D1', borderColor: 'rgba(255,255,255,0.8)' },
+    debugTouchScroll: { backgroundColor: '#7B1FA2', borderColor: 'rgba(255,255,255,0.9)' },
     cornerTopLeft: { position: 'absolute', top: 16, left: 16 },
     cornerTopRight: { position: 'absolute', top: 16, right: 16 },
     cornerBottomLeft: { position: 'absolute', bottom: 16, left: 16 },
     cornerBottomRight: { position: 'absolute', bottom: 16, right: 16 },
-    introOverlay: {
-      ...StyleSheet.absoluteFillObject,
-      zIndex: 5,
-      alignItems: 'center',
-      paddingHorizontal: 24,
-      paddingTop: 24,
-    },
+    introOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 5, alignItems: 'center', paddingHorizontal: 24, paddingTop: 24 },
     introBanner: {
       width: '100%',
       maxWidth: 420,
