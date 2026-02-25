@@ -12,6 +12,7 @@
     "generate:licenses": "npx license-kit report --format text --output public/licenses.txt --dm none && node -e \"require('fs').copyFileSync('public/licenses.txt','assets/licenses.txt')\"",
     "postinstall": "npm run generate:licenses || echo \"Skipping license generation (offline).\"",
     "test": "jest",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

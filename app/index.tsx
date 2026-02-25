@@ -31,6 +31,14 @@ const MOVE_MIN_DISTANCE = 6;
 const DEBUG_LONG_TOUCH_MS = 350;
 const DEBUG_SCROLL_DISTANCE = 20;
 
+// offsetX/Y are web-only properties not present in RN's NativeTouchEvent type
+function readEventXY(nativeEvent: GestureResponderEvent['nativeEvent']) {
+  const ev = nativeEvent as typeof nativeEvent & { offsetX?: number; offsetY?: number };
+  const x = typeof ev.locationX === 'number' ? ev.locationX : (ev.offsetX ?? 0);
+  const y = typeof ev.locationY === 'number' ? ev.locationY : (ev.offsetY ?? 0);
+  return { x, y };
+}
+
 type InputDebugStats = {
   touches: number;
   hits: number;
@@ -208,14 +216,7 @@ export default function HomeScreen() {
       // Touch events are handled by onTouchEnd; this is only for mouse clicks on web
       if (activeTouchRef.current !== null) return;
       const nativeEvent = e.nativeEvent;
-      const tapX =
-        typeof nativeEvent.locationX === 'number'
-          ? nativeEvent.locationX
-          : (nativeEvent.offsetX ?? 0);
-      const tapY =
-        typeof nativeEvent.locationY === 'number'
-          ? nativeEvent.locationY
-          : (nativeEvent.offsetY ?? 0);
+      const { x: tapX, y: tapY } = readEventXY(nativeEvent);
       if (Platform.OS === 'web' && tapX === 0 && tapY === 0) {
         return;
       }
@@ -243,14 +244,7 @@ export default function HomeScreen() {
         e.preventDefault();
       }
       const nativeEvent = e.nativeEvent;
-      const x =
-        typeof nativeEvent.locationX === 'number'
-          ? nativeEvent.locationX
-          : (nativeEvent.offsetX ?? 0);
-      const y =
-        typeof nativeEvent.locationY === 'number'
-          ? nativeEvent.locationY
-          : (nativeEvent.offsetY ?? 0);
+      const { x, y } = readEventXY(nativeEvent);
       const now = Number(nativeEvent.timestamp ?? Date.now());
       activeTouchRef.current = {
         startAt: now,
@@ -273,14 +267,7 @@ export default function HomeScreen() {
       if (!active) return;
 
       const nativeEvent = e.nativeEvent;
-      const x =
-        typeof nativeEvent.locationX === 'number'
-          ? nativeEvent.locationX
-          : (nativeEvent.offsetX ?? 0);
-      const y =
-        typeof nativeEvent.locationY === 'number'
-          ? nativeEvent.locationY
-          : (nativeEvent.offsetY ?? 0);
+      const { x, y } = readEventXY(nativeEvent);
       const now = Number(nativeEvent.timestamp ?? Date.now());
 
       const distanceSinceLast = Math.hypot(x - active.lastX, y - active.lastY);
@@ -306,14 +293,7 @@ export default function HomeScreen() {
       if (!settings.showInputDebug || !active) return;
 
       const nativeEvent = e.nativeEvent;
-      const x =
-        typeof nativeEvent.locationX === 'number'
-          ? nativeEvent.locationX
-          : (nativeEvent.offsetX ?? 0);
-      const y =
-        typeof nativeEvent.locationY === 'number'
-          ? nativeEvent.locationY
-          : (nativeEvent.offsetY ?? 0);
+      const { x, y } = readEventXY(nativeEvent);
       const now = Number(nativeEvent.timestamp ?? Date.now());
 
       const duration = now - active.startAt;
