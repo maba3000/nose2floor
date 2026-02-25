@@ -29,7 +29,6 @@ export default function SettingsScreen() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const hideAfterSeconds = Math.round(settings.hitMarkerAutoHideMs / 1000);
-  const introDisabled = settings.sessionMode === 'auto';
   const cornerOptions = settings.pointsEnabled
     ? ALL_CORNER_OPTIONS
     : ALL_CORNER_OPTIONS.filter((w) => w !== 'points');
@@ -43,27 +42,6 @@ export default function SettingsScreen() {
         </Text>
         <View style={styles.card}>
           <View style={styles.cardBlock}>
-            <View style={styles.row}>
-              <Text selectable={false} style={styles.rowLabel}>
-                Auto mode
-              </Text>
-              <Switch
-                value={settings.sessionMode === 'auto'}
-                onValueChange={(value) =>
-                  updateSettings({
-                    sessionMode: value ? 'auto' : 'manual',
-                    showIntro: value ? false : settings.showIntro,
-                  })
-                }
-              />
-            </View>
-            <Text selectable={false} style={styles.helpText}>
-              Auto mode starts and saves automatically. Manual mode uses Hold to Start and Hold to
-              Stop.
-            </Text>
-          </View>
-
-          <View style={[styles.cardBlock, styles.cardBlockBorder]}>
             <View style={styles.row}>
               <Text selectable={false} style={styles.rowLabel}>
                 Haptic feedback
@@ -173,16 +151,10 @@ export default function SettingsScreen() {
                   Show intro on startup
                 </Text>
                 <Switch
-                  value={introDisabled ? false : settings.showIntro}
-                  disabled={introDisabled}
+                  value={settings.showIntro}
                   onValueChange={(value) => updateSettings({ showIntro: value })}
                 />
               </View>
-              {introDisabled && (
-                <Text selectable={false} style={styles.helpText}>
-                  Disabled while auto mode is on.
-                </Text>
-              )}
             </View>
 
             <View style={[styles.cardBlock, styles.cardBlockBorder]}>

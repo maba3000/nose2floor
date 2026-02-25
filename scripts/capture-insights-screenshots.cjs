@@ -138,7 +138,6 @@ function writeSeedFiles() {
 
           localStorage.setItem('settings', JSON.stringify(nextSettings));
           localStorage.setItem('history', JSON.stringify(payload.history));
-          localStorage.removeItem('autoSession');
 
           // Allow storage writes to settle before route render.
           setTimeout(() => {

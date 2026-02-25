@@ -60,24 +60,6 @@ export function saveHistory(history: WorkoutSession[]): void {
   storage.set('history', JSON.stringify(history));
 }
 
-export function loadAutoSession(): WorkoutSession | null {
-  const raw = storage.getString('autoSession');
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw) as WorkoutSession;
-  } catch {
-    return null;
-  }
-}
-
-export function saveAutoSession(session: WorkoutSession): void {
-  storage.set('autoSession', JSON.stringify(session));
-}
-
-export function clearAutoSession(): void {
-  storage.set('autoSession', '');
-}
-
 export interface ExportData {
   version: 1;
   exportedAt: string;

@@ -160,7 +160,6 @@ function main() {
     exportedAt: new Date().toISOString(),
     settings: {
       hitCooldownMs: 300,
-      sessionMode: 'manual',
       showIntro: false,
       hapticsEnabled: true,
       themeMode: 'system',

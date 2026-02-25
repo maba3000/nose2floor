@@ -20,7 +20,6 @@ export type CornerWidget = 'hits' | 'points' | 'timer' | 'goal' | 'none';
 
 export interface AppSettings {
   hitCooldownMs: number;
-  sessionMode: 'manual' | 'auto';
   showIntro: boolean;
   hapticsEnabled: boolean;
   themeMode: 'light' | 'dark' | 'system';
@@ -42,7 +41,6 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   hitCooldownMs: 400,
-  sessionMode: 'manual',
   showIntro: true,
   hapticsEnabled: true,
   themeMode: 'system',

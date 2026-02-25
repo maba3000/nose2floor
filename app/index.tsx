@@ -12,13 +12,11 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useTimer } from '@/hooks/useTimer';
 import { useHaptics } from '@/hooks/useHaptics';
 import { useHitInput } from '@/hooks/useHitInput';
-import { buildAutoSessionSnapshot } from '@/domain/autoSession';
 import { BullseyeCanvas } from '@/components/BullseyeCanvas';
 import { HoldButton } from '@/components/HoldButton';
 import { HitMarkerOverlay } from '@/components/HitMarkerOverlay';
 import { CornerBadge } from '@/components/CornerBadge';
 import type { CornerWidget } from '@/domain/entities';
-import { clearAutoSession, loadAutoSession, saveAutoSession } from '@/persistence/storage';
 import { useTheme } from '@/hooks/useTheme';
 import type { Theme } from '@/theme';
 
@@ -42,13 +40,11 @@ export default function HomeScreen() {
   const elapsedSeconds = useSessionStore((s) => s.elapsedSeconds);
   const hits = useSessionStore((s) => s.hits);
   const startSession = useSessionStore((s) => s.startSession);
-  const loadSession = useSessionStore((s) => s.loadSession);
   const reset = useSessionStore((s) => s.reset);
   const lastTap = useSessionStore((s) => s.lastTap);
 
   const history = useHistoryStore((s) => s.history);
   const addSession = useHistoryStore((s) => s.addSession);
-  const upsertSession = useHistoryStore((s) => s.upsertSession);
 
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -59,7 +55,6 @@ export default function HomeScreen() {
 
   const sessionStartTime = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
-  const autoStartBlockedRef = useRef(false);
   const layoutRef = useRef<{ cx: number; cy: number; maxRadius: number } | null>(null);
 
   // ── Local state ───────────────────────────────────────────────────────────
@@ -112,11 +107,7 @@ export default function HomeScreen() {
 
   const handleStopSession = useCallback(() => {
     resetInputState();
-    if (settings.sessionMode === 'auto') {
-      autoStartBlockedRef.current = true;
-    }
     if (reps === 0) {
-      if (settings.sessionMode === 'auto') clearAutoSession();
       sessionIdRef.current = null;
       reset();
       triggerStop();
@@ -132,12 +123,7 @@ export default function HomeScreen() {
       hits,
       bullseyeScale: settings.bullseyeScale,
     };
-    if (settings.sessionMode === 'auto') {
-      upsertSession(session);
-      clearAutoSession();
-    } else {
-      addSession(session);
-    }
+    addSession(session);
     sessionIdRef.current = null;
     reset();
     triggerStop();
@@ -149,10 +135,8 @@ export default function HomeScreen() {
     reset,
     resetInputState,
     settings.bullseyeScale,
-    settings.sessionMode,
     totalScore,
     triggerStop,
-    upsertSession,
   ]);
 
   // ── Computed values ───────────────────────────────────────────────────────
@@ -178,68 +162,6 @@ export default function HomeScreen() {
   useEffect(() => {
     setIntroVisible(settings.showIntro);
   }, [settings.showIntro]);
-
-  // Auto-session: restore a saved in-progress session on mount
-  useEffect(() => {
-    if (settings.sessionMode !== 'auto' || introVisible || isActive) return;
-    const session = loadAutoSession();
-    if (!session || session.reps === 0) return;
-    sessionStartTime.current = session.startedAt;
-    sessionIdRef.current = session.id;
-    loadSession(session);
-  }, [settings.sessionMode, introVisible, isActive, loadSession]);
-
-  // Auto-session: unblock auto-start when mode is toggled back to auto
-  useEffect(() => {
-    if (settings.sessionMode === 'auto') autoStartBlockedRef.current = false;
-  }, [settings.sessionMode]);
-
-  // Auto-session: start a new session automatically when none is active
-  useEffect(() => {
-    if (
-      settings.sessionMode !== 'auto' ||
-      introVisible ||
-      autoStartBlockedRef.current ||
-      sessionIdRef.current ||
-      isActive
-    )
-      return;
-    sessionStartTime.current = Date.now();
-    sessionIdRef.current = uuid();
-    startSession();
-  }, [settings.sessionMode, introVisible, isActive, startSession]);
-
-  // Auto-session: persist snapshot on every rep so progress survives app closure
-  useEffect(() => {
-    if (settings.sessionMode !== 'auto' || !isActive) return;
-    if (!sessionIdRef.current) {
-      sessionIdRef.current = uuid();
-      if (!sessionStartTime.current) sessionStartTime.current = Date.now();
-    }
-    const snapshot = buildAutoSessionSnapshot({
-      sessionMode: settings.sessionMode,
-      isActive,
-      id: sessionIdRef.current,
-      startedAt: sessionStartTime.current || Date.now(),
-      durationSeconds: elapsedSeconds,
-      reps,
-      totalScore,
-      hits,
-      bullseyeScale: settings.bullseyeScale,
-    });
-    if (!snapshot) return;
-    upsertSession(snapshot);
-    saveAutoSession(snapshot);
-  }, [
-    settings.sessionMode,
-    isActive,
-    elapsedSeconds,
-    reps,
-    totalScore,
-    hits,
-    settings.bullseyeScale,
-    upsertSession,
-  ]);
 
   // ── Corner widget renderer ────────────────────────────────────────────────
 

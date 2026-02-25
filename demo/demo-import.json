@@ -3,7 +3,6 @@
   "exportedAt": "2026-02-25T12:33:45.375Z",
   "settings": {
     "hitCooldownMs": 300,
-    "sessionMode": "manual",
     "showIntro": false,
     "hapticsEnabled": true,
     "themeMode": "system",
